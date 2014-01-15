@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Tritac_ChannelEngine>
-            <version>0.0.0.2</version>
+            <version>0.1.0.0</version>
         </Tritac_ChannelEngine>
     </modules>
 
@@ -12,7 +12,32 @@
                 <class>Tritac_ChannelEngine_Helper</class>
             </channelengine>
         </helpers>
+        <models>
+            <channelengine>
+                <class>Tritac_ChannelEngine_Model</class>
+            </channelengine>
+        </models>
+        <resources>
+            <channelengine_setup>
+                <setup>
+                    <module>Tritac_ChannelEngine</module>
+                    <class>Tritac_ChannelEngine_Model_Resource_Setup</class>
+                </setup>
+            </channelengine_setup>
+        </resources>
     </global>
+
+    <default>
+        <payment>
+            <channelengine>
+                <active>1</active>
+                <model>channelengine/payment_method_channelengine</model>
+                <title>Paid with ChannelEngine</title>
+                <allowspecific>0</allowspecific>
+                <order_status>pending</order_status>
+            </channelengine>
+        </payment>
+    </default>
 
     <frontend>
         <routers>
@@ -37,4 +62,17 @@
             </channelengine>
         </routers>
     </admin>
+
+    <crontab>
+        <jobs>
+            <channelengine>
+                <schedule>
+                    <cron_expr>*/5 * * * *</cron_expr>
+                </schedule>
+                <run>
+                    <model>channelengine/observer::fetchNewOrders</model>
+                </run>
+            </channelengine>
+        </jobs>
+    </crontab>
 </config>
