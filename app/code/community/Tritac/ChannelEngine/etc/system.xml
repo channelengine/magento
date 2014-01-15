@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+
+<config>
+    <tabs>
+        <Tritac translate="label">
+            <label>Tritac ChannelEngine</label>
+            <sort_order>220</sort_order>
+        </Tritac>
+    </tabs>
+
+    <sections>
+        <channelengine translate="label" module="channelengine">
+            <label>Settings</label>
+            <tab>Tritac</tab>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>
+            <sort_order>1000</sort_order>
+            <groups>
+                <general translate="label">
+                    <label>General</label>
+                    <frontend_type>text</frontend_type>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <sort_order>3</sort_order>
+                    <fields>
+                        <api_key translate="label">
+                            <label>Api Key</label>
+                            <frontend_type>password</frontend_type>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </api_key>
+                        <api_secret translate="label">
+                            <label>Api Secret</label>
+                            <frontend_type>password</frontend_type>
+                            <sort_order>2</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </api_secret>
+                    </fields>
+                </general>
+            </groups>
+        </channelengine>
+    </sections>
+</config>

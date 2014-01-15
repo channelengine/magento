@@ -5,4 +5,36 @@
             <version>0.0.0.2</version>
         </Tritac_ChannelEngine>
     </modules>
+
+    <global>
+        <helpers>
+            <channelengine>
+                <class>Tritac_ChannelEngine_Helper</class>
+            </channelengine>
+        </helpers>
+    </global>
+
+    <frontend>
+        <routers>
+            <channelengine>
+                <use>standart</use>
+                <args>
+                    <module>Tritac_ChannelEngine</module>
+                    <frontName>channelengine</frontName>
+                </args>
+            </channelengine>
+        </routers>
+    </frontend>
+
+    <admin>
+        <routers>
+            <channelengine>
+                <use>admin</use>
+                <args>
+                    <module>Tritac_ChannelEngine</module>
+                    <frontName>channelengine</frontName>
+                </args>
+            </channelengine>
+        </routers>
+    </admin>
 </config>
