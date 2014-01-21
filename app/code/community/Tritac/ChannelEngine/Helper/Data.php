@@ -8,8 +8,8 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
      *
      * @return array
      */
-    public function getConfig(){
-
+    public function getConfig()
+    {
         if(empty($this->_config))
             $this->_config = Mage::getStoreConfig('channelengine/general');
 
@@ -21,11 +21,11 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
      *
      * @return bool
      */
-    public function checkConfig(){
-
+    public function checkConfig()
+    {
         $config = $this->_config;
 
-        if(empty($config['api_key']) || empty($config['api_secret']) || empty($config['tenant'])){
+        if(empty($config['api_key']) || empty($config['api_secret']) || empty($config['tenant'])) {
             Mage::log(
                 "Couldn't connect to ChannelEngine.
                 Please specify account keys

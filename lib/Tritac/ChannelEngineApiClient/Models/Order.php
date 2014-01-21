@@ -82,7 +82,7 @@ class Tritac_ChannelEngineApiClient_Models_Order extends Tritac_ChannelEngineApi
     function setChannelCustomerNo($checkoutCustomerNo) { $this->checkoutCustomerNo = $checkoutCustomerNo; }
     function getChannelCustomerNo() { return $this->checkoutCustomerNo; }
 
-    function setBillingAddress(Address $billingAddress) { $this->billingAddress = $billingAddress; }
+    function setBillingAddress(Tritac_ChannelEngineApiClient_Models_Address $billingAddress) { $this->billingAddress = $billingAddress; }
     function getBillingAddress() { return $this->billingAddress; }
 
     function setCancellations($cancellations) { $this->cancellations = $cancellations; }
