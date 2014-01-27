@@ -149,17 +149,47 @@ class Tritac_ChannelEngine_Model_Observer
             } catch (Mage_Core_Exception $e) {
                 Mage::logException($e);
                 continue;
-
             } catch (Exception $e) {
                 Mage::logException($e);
                 continue;
             }
 
             $_order = $service->getOrder();
-            if($_order->getIncrementId())
+
+            if($_order->getIncrementId()) {
+
+                /**
+                 * Create new invoice
+                 */
+                try {
+                    // Initialize new invoice model
+                    $invoice = Mage::getModel('sales/service_order', $_order)->prepareInvoice();
+                    // Add comment to invoice
+                    $invoice->addComment(
+                        "Order paid on the marketplace.",
+                        false,
+                        true
+                    );
+
+                    // Register invoice. Register invoice items. Collect invoice totals.
+                    $invoice->register();
+                    $invoice->getOrder()->setIsInProcess(true);
+
+                    // Start new transaction
+                    $transactionSave = Mage::getModel('core/resource_transaction')
+                        ->addObject($invoice)
+                        ->addObject($invoice->getOrder());
+                    $transactionSave->save();
+
+                } catch (Mage_Core_Exception $e) {
+                    Mage::logException($e);
+                } catch (Exception $e) {
+                    Mage::logException($e);
+                }
                 Mage::log("Order #{$_order->getIncrementId()} was imported successfully.");
-            else
+            } else {
                 Mage::log("Can't import order. ChannelEngine Order Id: {$order->getId()}");
+            }
         }
 
         return true;
@@ -214,19 +244,54 @@ class Tritac_ChannelEngine_Model_Observer
 
             // Initialize new ChannelEngine collection of shipments
             $linesCollection = new Tritac_ChannelEngineApiClient_Helpers_Collection('Tritac_ChannelEngineApiClient_Models_ShipmentLine');
-            foreach($_shipment->getAllItems() as $_item) {
-                // We use order item to retrieve ChannelEngine Order Line Id
-                $_orderItem = Mage::getModel('sales/order_item')->load($_item->getOrderItemId());
+
+            foreach($_order->getAllItems() as $_orderItem) {
+
+                // Load saved order item from db, because current items changed but still not saved
+                $_orderItemOrigin = Mage::getModel('sales/order_item')->load($_orderItem->getId());
+
+                // Get shipment item that contains required qty to ship.
+                foreach ($_shipment->getItemsCollection() as $item) {
+                    if ($item->getOrderItemId()==$_orderItem->getId()) {
+                        $_shipmentItem = $item;
+                        break;
+                    }
+                }
+
+                $qtyToShip = (int) $_shipmentItem->getQty();
+                $orderedQty = (int) $_orderItem->getQtyOrdered();
+                $shippedQty = (int) $_orderItemOrigin->getQtyShipped();
+
+                // Skip item if all qty already shipped
+                if($orderedQty == $shippedQty)
+                    continue;
+
+                // If we send a part of an order, post with status IN_BACKORDER
+                if($qtyToShip < $orderedQty - $shippedQty) {
+                    $shipmentLine = new Tritac_ChannelEngineApiClient_Models_ShipmentLine();
+                    // Fill required data
+                    $shipmentLine->setShipmentId($_shipment->getId());
+                    $shipmentLine->setOrderLineId($_orderItem->getChannelengineOrderLineId());
+                    $shipmentLine->setQuantity($orderedQty - $qtyToShip - $shippedQty);
+                    $shipmentLine->setStatus(Tritac_ChannelEngineApiClient_Enums_ShipmentLineStatus::IN_BACKORDER);
+                    $expectedDate = new DateTime('+2 weeks');
+                    $shipmentLine->setExpectedDate($expectedDate->format('Y-m-d')); // TODO Add multipurpose solution
+                    $shipmentLines[] = $shipmentLine;
+                    // Put shipment line to shipments collection
+                    $linesCollection->append($shipmentLine);
+                }
                 // Initialize new ChannelEngine Shipment Line
-                $shipmentLine = new Tritac_ChannelEngineApiClient_Models_ShipmentLine();
-                // Fill required data
-                $shipmentLine->setShipmentId($_shipment->getId());
-                $shipmentLine->setOrderLineId($_orderItem->getChannelengineOrderLineId());
-                $shipmentLine->setQuantity($_item->getQty());
-                $shipmentLine->setStatus( Tritac_ChannelEngineApiClient_Enums_ShipmentLineStatus::SHIPPED );
-                $shipmentLines[] = $shipmentLine;
-                // Put shipment line to shipments collection
-                $linesCollection->append($shipmentLine);
+                if($qtyToShip > 0) {
+                    $shipmentLine = new Tritac_ChannelEngineApiClient_Models_ShipmentLine();
+                    // Fill required data
+                    $shipmentLine->setShipmentId($_shipment->getId());
+                    $shipmentLine->setOrderLineId($_orderItem->getChannelengineOrderLineId());
+                    $shipmentLine->setQuantity($qtyToShip);
+                    $shipmentLine->setStatus(Tritac_ChannelEngineApiClient_Enums_ShipmentLineStatus::SHIPPED);
+                    $shipmentLines[] = $shipmentLine;
+                    // Put shipment line to shipments collection
+                    $linesCollection->append($shipmentLine);
+                }
             }
 
             $shipment->setLines($linesCollection);
