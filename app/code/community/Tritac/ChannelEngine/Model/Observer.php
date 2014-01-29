@@ -140,9 +140,9 @@ class Tritac_ChannelEngine_Model_Observer
                 $quote->save();
 
                 $service = Mage::getModel('sales/service_quote', $quote);
-                $service->setOrderData(array(
-                    'channelengine_order_id' => $order->getId()
-                ));
+//                $service->setOrderData(array(
+//                    'channelengine_order_id' => $order->getId()
+//                ));
 
                 $service->submitAll();
 
@@ -159,7 +159,7 @@ class Tritac_ChannelEngine_Model_Observer
             if($_order->getIncrementId()) {
 
                 /**
-                 * Create new invoice
+                 * Create new invoice and save channel order
                  */
                 try {
                     // Initialize new invoice model
@@ -175,10 +175,19 @@ class Tritac_ChannelEngine_Model_Observer
                     $invoice->register();
                     $invoice->getOrder()->setIsInProcess(true);
 
+                    // Initialize new channel order
+                    $_channelOrder = Mage::getModel('channelengine/order');
+                    $_channelOrder->setOrderId($_order->getId())
+                        ->setChannelOrderId($order->getId())
+                        ->setChannelName($order->getChannelName())
+                        ->setDoSendMails($order->getDoSendMails())
+                        ->setCanShipPartial($order->getCanShipPartialOrderLines());
+
                     // Start new transaction
                     $transactionSave = Mage::getModel('core/resource_transaction')
                         ->addObject($invoice)
-                        ->addObject($invoice->getOrder());
+                        ->addObject($invoice->getOrder())
+                        ->addObject($_channelOrder);
                     $transactionSave->save();
 
                 } catch (Mage_Core_Exception $e) {
@@ -208,8 +217,15 @@ class Tritac_ChannelEngine_Model_Observer
         $_shipment = $event->getShipment();
         /** @var $_order Mage_Sales_Model_Order */
         $_order = $_shipment->getOrder();
-        $channelOrderId = $_order->getChannelengineOrderId();
+        $channelOrder = Mage::getModel('channelengine/order')->loadByOrderId($_order->getId());
+        $channelOrderId = $channelOrder->getChannelOrderId();
         $helper = Mage::helper('channelengine');
+
+        /**
+         * Check ChannelEngine order
+         */
+        if(!$channelOrderId)
+            return false;
 
         /**
          * Check required config parameters
@@ -227,12 +243,6 @@ class Tritac_ChannelEngine_Model_Observer
             $config['api_secret'],
             $config['tenant']
         );
-
-        /**
-         * Check ChannelEngine order
-         */
-        if(!$channelOrderId)
-            return false;
 
         foreach($_shipment->getAllTracks() as $_track) {
             // Initialize new ChannelEngine shipment object
@@ -297,6 +307,12 @@ class Tritac_ChannelEngine_Model_Observer
             $shipment->setLines($linesCollection);
             // Post shipment to ChannelEngine
             $client->postShipment($shipment);
+
+            if ($channelOrder->getDoSendMails()) {
+                $_shipment->getOrder()->setCustomerNoteNotify(true);
+                $_shipment->sendEmail(true, "Order was placed on {$channelOrder->getChannelName()} marketplace")
+                    ->setEmailSent(true);
+            }
 
             Mage::log("Shippment #{$_shipment->getId()} was placed successfully.");
         }

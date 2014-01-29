@@ -15,7 +15,16 @@
         <models>
             <channelengine>
                 <class>Tritac_ChannelEngine_Model</class>
+                <resourceModel>channelengine_resource</resourceModel>
             </channelengine>
+            <channelengine_resource>
+                <class>Tritac_ChannelEngine_Model_Resource</class>
+                <entities>
+                    <order>
+                        <table>channelengine_order</table>
+                    </order>
+                </entities>
+            </channelengine_resource>
         </models>
         <resources>
             <channelengine_setup>
@@ -23,7 +32,20 @@
                     <module>Tritac_ChannelEngine</module>
                     <class>Tritac_ChannelEngine_Model_Resource_Setup</class>
                 </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
             </channelengine_setup>
+            <channelengine_read>
+                <connection>
+                    <use>core_read</use>
+                </connection>
+            </channelengine_read>
+            <channelengine_write>
+                <connection>
+                    <use>core_write</use>
+                </connection>
+            </channelengine_write>
         </resources>
         <fieldsets>
             <sales_convert_quote_item>
