@@ -7,6 +7,13 @@
     </modules>
 
     <global>
+        <blocks>
+            <adminhtml>
+                <rewrite>
+                    <sales_order_grid>Tritac_ChannelEngine_Block_Sales_Order_Grid</sales_order_grid>
+                </rewrite>
+            </adminhtml>
+        </blocks>
         <helpers>
             <channelengine>
                 <class>Tritac_ChannelEngine_Helper</class>

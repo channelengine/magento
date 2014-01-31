@@ -1,7 +1,14 @@
 <?php
 class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
 
-    protected $_config;
+    protected $_config = null;
+
+    /**
+     * Default expected shipment time (in weekdays)
+     *
+     * @var int
+     */
+    protected $_defaultTimeToShip = 5;
 
     /**
      * Get extension config
@@ -37,5 +44,13 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
         return true;
     }
 
+    public function getExpectedShipmentDate()
+    {
+        $weekdays = (int) Mage::getStoreConfig('channelengine/shipping/expected_date');
+        if($weekdays <= 0)
+            $weekdays = $this->_defaultTimeToShip;
 
+        $expectedDate = date("Y-m-d", strtotime("{$weekdays} weekdays"));
+        return new DateTime($expectedDate);
+    }
 }

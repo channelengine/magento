@@ -4,6 +4,48 @@
  */
 class Tritac_ChannelEngine_Model_Observer
 {
+
+    /**
+     * API client
+     *
+     * @var Tritac_ChannelEngineApiClient_Client
+     */
+    protected $_client = null;
+
+    /**
+     * API config. API key, API secret, API tenant
+     *
+     * @var array
+     */
+    protected $_config = null;
+
+    /**
+     * ChannelEngine helper
+     *
+     * @var Tritac_ChannelEngine_Helper_Data
+     */
+    protected $_helper = null;
+
+    /**
+     * Retrieve and validate API config
+     * Initialize API client
+     */
+    public function __construct()
+    {
+        $this->_helper = Mage::helper('channelengine');
+        $this->_config = $this->_helper->getConfig();
+        /**
+         * Check required config parameters. Initialize API client.
+         */
+        if($this->_helper->checkConfig()) {
+            $this->_client = new Tritac_ChannelEngineApiClient_Client(
+                $this->_config['api_key'],
+                $this->_config['api_secret'],
+                $this->_config['tenant']
+            );
+        }
+    }
+
     /**
      * Fetch new orders from ChannelEngine.
      * Uses for cronjob. Cronjob is set in extension config file.
@@ -12,29 +54,16 @@ class Tritac_ChannelEngine_Model_Observer
      */
     public function fetchNewOrders()
     {
-        $helper = Mage::helper('channelengine');
-
         /**
-         * Check required config parameters
+         * Check if client is initialized
          */
-        $config = $helper->getConfig();
-        if(!$helper->checkConfig()) {
+        if(is_null($this->_client))
             return false;
-        }
-
-        /**
-         * Initialize new client
-         */
-        $client = new Tritac_ChannelEngineApiClient_Client(
-            $config['api_key'],
-            $config['api_secret'],
-            $config['tenant']
-        );
 
         /**
          * Retrieve new orders
          */
-        $orders = $client->getOrders(array(
+        $orders = $this->_client->getOrders(array(
             Tritac_ChannelEngineApiClient_Enums_OrderStatus::NEW_ORDER
         ));
 
@@ -51,7 +80,7 @@ class Tritac_ChannelEngine_Model_Observer
             if(empty($billingAddress)) continue;
 
             // Initialize new quote
-            $quote = Mage::getModel('sales/quote')->setStoreId(Mage::app()->getStore()->getId());
+            $quote = Mage::getModel('sales/quote')->setStoreId(Mage::app()->getDefaultStoreView()->getStoreId());
             $lines = $order->getLines();
 
             if(!empty($lines)) {
@@ -73,26 +102,31 @@ class Tritac_ChannelEngine_Model_Observer
                         $_quoteItem = $quote->addProduct($_product, $params);
                         $_quoteItem->setChannelengineOrderLineId($item->getId());
 
-                    } catch (Mage_Core_Exception $e) {
-                        Mage::logException($e);
-
                     } catch (Exception $e) {
+
+                        Mage::getModel('adminnotification/inbox')->addCritical(
+                            "An order (#{$order->getId()}) could not be imported",
+                            "Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
+                        );
                         Mage::logException($e);
+                        continue 2;
                     }
                 }
             }
-
+            $phone = $order->getPhone();
+            if(empty($phone))
+                $phone = '-';
             // Prepare billing and shipping addresses
             $billingData = array(
                 'firstname'     => $billingAddress->getFirstName(),
                 'lastname'      => $billingAddress->getLastName(),
                 'email'         => $order->getEmail(),
-                'telephone'     => '-',
+                'telephone'     => $phone,
                 'country_id'    => $billingAddress->getCountryIso(),
                 'postcode'      => $billingAddress->getZipCode(),
                 'city'          => $billingAddress->getCity(),
                 'street'        =>
-                $billingAddress->getStreetName().' '.
+                    $billingAddress->getStreetName().' '.
                     $billingAddress->getHouseNr().
                     $billingAddress->getHouseNrAddition()
             );
@@ -100,12 +134,12 @@ class Tritac_ChannelEngine_Model_Observer
                 'firstname'     => $shippingAddress->getFirstName(),
                 'lastname'      => $shippingAddress->getLastName(),
                 'email'         => $order->getEmail(),
-                'telephone'     => '-',
+                'telephone'     => $phone,
                 'country_id'    => $shippingAddress->getCountryIso(),
                 'postcode'      => $shippingAddress->getZipCode(),
                 'city'          => $shippingAddress->getCity(),
                 'street'        =>
-                $shippingAddress->getStreetName().' '.
+                    $shippingAddress->getStreetName().' '.
                     $shippingAddress->getHouseNr().
                     $shippingAddress->getHouseNrAddition()
             );
@@ -140,16 +174,14 @@ class Tritac_ChannelEngine_Model_Observer
                 $quote->save();
 
                 $service = Mage::getModel('sales/service_quote', $quote);
-//                $service->setOrderData(array(
-//                    'channelengine_order_id' => $order->getId()
-//                ));
 
                 $service->submitAll();
 
-            } catch (Mage_Core_Exception $e) {
-                Mage::logException($e);
-                continue;
             } catch (Exception $e) {
+                Mage::getModel('adminnotification/inbox')->addCritical(
+                    "An order (#{$order->getId()}) could not be imported",
+                    "Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
+                );
                 Mage::logException($e);
                 continue;
             }
@@ -183,6 +215,10 @@ class Tritac_ChannelEngine_Model_Observer
                         ->setDoSendMails($order->getDoSendMails())
                         ->setCanShipPartial($order->getCanShipPartialOrderLines());
 
+                    $invoice->getOrder()
+                        ->setCanShipPartiallyItem($order->getCanShipPartialOrderLines())
+                        ->setCanShipPartially($order->getCanShipPartialOrderLines());
+
                     // Start new transaction
                     $transactionSave = Mage::getModel('core/resource_transaction')
                         ->addObject($invoice)
@@ -190,14 +226,17 @@ class Tritac_ChannelEngine_Model_Observer
                         ->addObject($_channelOrder);
                     $transactionSave->save();
 
-                } catch (Mage_Core_Exception $e) {
-                    Mage::logException($e);
                 } catch (Exception $e) {
+                    Mage::getModel('adminnotification/inbox')->addCritical(
+                        "An invoice could not be created (order #{$_order->getIncrementId()}, channel order #{$order->getId()})",
+                        "Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
+                    );
                     Mage::logException($e);
+                    continue;
                 }
                 Mage::log("Order #{$_order->getIncrementId()} was imported successfully.");
             } else {
-                Mage::log("Can't import order. ChannelEngine Order Id: {$order->getId()}");
+                Mage::log("An order (#{$order->getId()}) could not be imported");
             }
         }
 
@@ -228,21 +267,22 @@ class Tritac_ChannelEngine_Model_Observer
             return false;
 
         /**
-         * Check required config parameters
+         * Check if client is initialized
          */
-        $config = $helper->getConfig();
-        if(!$helper->checkConfig()) {
+        if(is_null($this->_client))
             return false;
-        }
 
         /**
-         * Initialize new client
+         * Throw new exception if user not added tracking information
          */
-        $client = new Tritac_ChannelEngineApiClient_Client(
-            $config['api_key'],
-            $config['api_secret'],
-            $config['tenant']
-        );
+        if(!$_shipment->getAllTracks()) {
+            Mage::getSingleton('adminhtml/session')->addError(
+                $this->_helper->__("Tracking information can not be empty")
+            );
+            throw new Exception(
+                $this->_helper->__("Cannot save shipment without tracking information.")
+            );
+        }
 
         foreach($_shipment->getAllTracks() as $_track) {
             // Initialize new ChannelEngine shipment object
@@ -284,8 +324,8 @@ class Tritac_ChannelEngine_Model_Observer
                     $shipmentLine->setOrderLineId($_orderItem->getChannelengineOrderLineId());
                     $shipmentLine->setQuantity($orderedQty - $qtyToShip - $shippedQty);
                     $shipmentLine->setStatus(Tritac_ChannelEngineApiClient_Enums_ShipmentLineStatus::IN_BACKORDER);
-                    $expectedDate = new DateTime('+2 weeks');
-                    $shipmentLine->setExpectedDate($expectedDate->format('Y-m-d')); // TODO Add multipurpose solution
+                    $expectedDate = $this->_helper->getExpectedShipmentDate();
+                    $shipmentLine->setExpectedDate($expectedDate->format('Y-m-d'));
                     $shipmentLines[] = $shipmentLine;
                     // Put shipment line to shipments collection
                     $linesCollection->append($shipmentLine);
@@ -306,15 +346,11 @@ class Tritac_ChannelEngine_Model_Observer
 
             $shipment->setLines($linesCollection);
             // Post shipment to ChannelEngine
-            $client->postShipment($shipment);
-
-            if ($channelOrder->getDoSendMails()) {
-                $_shipment->getOrder()->setCustomerNoteNotify(true);
-                $_shipment->sendEmail(true, "Order was placed on {$channelOrder->getChannelName()} marketplace")
-                    ->setEmailSent(true);
-            }
+            $this->_client->postShipment($shipment);
 
             Mage::log("Shippment #{$_shipment->getId()} was placed successfully.");
+
+            return true;
         }
     }
 }
