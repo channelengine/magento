@@ -131,14 +131,22 @@
 
     <crontab>
         <jobs>
-            <channelengine>
+            <fetch_channelengine_orders>
                 <schedule>
                     <cron_expr>*/5 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>channelengine/observer::fetchNewOrders</model>
                 </run>
-            </channelengine>
+            </fetch_channelengine_orders>
+            <generate_channelengine_feed>
+                <schedule>
+                    <cron_expr>*/5 * * * *</cron_expr>
+                </schedule>
+                <run>
+                    <model>channelengine/observer::generateFeed</model>
+                </run>
+            </generate_channelengine_feed>
         </jobs>
     </crontab>
 </config>

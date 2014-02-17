@@ -301,11 +301,16 @@ class Tritac_ChannelEngine_Model_Observer
                 $_orderItemOrigin = Mage::getModel('sales/order_item')->load($_orderItem->getId());
 
                 // Get shipment item that contains required qty to ship.
+                $_shipmentItem = null;
                 foreach ($_shipment->getItemsCollection() as $item) {
                     if ($item->getOrderItemId()==$_orderItem->getId()) {
                         $_shipmentItem = $item;
                         break;
                     }
+                }
+
+                if(is_null($_shipmentItem)) {
+                    continue;
                 }
 
                 $qtyToShip = (int) $_shipmentItem->getQty();
@@ -352,5 +357,103 @@ class Tritac_ChannelEngine_Model_Observer
 
             return true;
         }
+    }
+
+    /**
+     * Generate products feed for ChannelEngine
+     */
+    public function generateFeed() {
+        // Initialize new output file
+        $io = new Varien_Io_File();
+
+        // Prepare feed file name and path
+        $path = Mage::getBaseDir('var') . DS . 'export' . DS;
+        $name = 'channelengine_products.xml';
+        $file = $path . DS . $name;
+
+        // Write feed headers
+        $io->setAllowCreateFolders(true);
+        $io->open(array('path' => $path));
+        $io->streamOpen($file, 'w+');
+        $io->streamLock(true);
+        $io->streamWrite('<?xml version="1.0" encoding="UTF-8"?>' . "\n");
+        $io->streamWrite('<ArrayOfProduct xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' . "\n");
+
+        $collection = Mage::getResourceModel('catalog/product_collection');
+        $collection->addAttributeToSelect(array('name', 'description', 'image', 'url_key', 'price', 'visibility'), 'left');
+        $collection->addFieldToFilter('type_id', 'simple');
+
+        // Join inventory information
+        $collection->getSelect()
+            ->joinLeft(
+                array('csi' => Mage::getSingleton('core/resource')->getTableName('cataloginventory/stock_item')),
+                '`e`.`entity_id` = `csi`.`product_id`',
+                array('qty' => 'COALESCE(`qty`, 0)')
+            );
+
+        // Fetch query records one by one
+        Mage::getSingleton('core/resource_iterator')->walk(
+            $collection->getSelect(),
+            array(array($this, 'callbackGenerateFeed')),
+            array('io' => $io)
+        );
+
+        // Write feed footer. Unlock and close file.
+        $io->streamWrite('</ArrayOfProduct>');
+        $io->streamUnlock();
+        $io->streamClose();
+
+        Mage::log("Products feed is generated successfully");
+    }
+
+    public function callbackGenerateFeed($args) {
+        $io = $args['io'];
+        $product = $args['row'];
+
+        $productXml = "<Product>";
+        $productXml .= "<Id>".$product['entity_id']."</Id>";
+        $productXml .= "<Name>".$product['name']."</Name>";
+        $productXml .= "<Description>".$product['description']."</Description>";
+        $productXml .= "<Price>".$product['price']."</Price>";
+        $productXml .= "<ListPrice>".$product['msrp']."</ListPrice>";
+        $productXml .= "<PurchasePrice>".$product['base_price']."</PurchasePrice>";
+        $productXml .= "<Stock>".$product['qty']."</Stock>";
+        $productXml .= "<SKU>".$product['sku']."</SKU>";
+        $productXml .= "<Url>".$product['url_key']."</Url>";
+
+        // If product has base image export it to feed
+        if($product['image'] != 'no_selection') {
+            $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['image']);
+            $productXml .= "<ImageUrl>".$imgUrl."</ImageUrl>";
+        }
+
+        // Prepare product categories path
+        $adapter = Mage::getSingleton('core/resource')->getConnection('core/read');
+
+        $select = $adapter->select('category_id')
+            ->from(Mage::getSingleton('core/resource')->getTableName('catalog/category_product'), 'category_id')
+            ->where('product_id = ?', $product['entity_id']);
+
+        $categoryIds = $adapter->fetchCol($select);
+
+        if(is_array($categoryIds)) {
+            $categoryId = end($categoryIds);
+            $categoryPathIds = Mage::getModel('catalog/category')->load($categoryId)->getPathIds();
+            $categoryPath = null;
+            foreach($categoryPathIds as $id) {
+                // Skip root category
+                if($id > 2) {
+                    $categoryPath .= ($categoryPath) ? ' > ':'';
+                    $categoryPath .= Mage::getModel('catalog/category')->load($id)->getName();
+                }
+            }
+            if($categoryPath) {
+                $productXml .= "<Category>".$categoryPath."</Category>";
+            }
+        }
+
+        $productXml .= "</Product>\n";
+
+        $io->streamWrite($productXml);
     }
 }
