@@ -363,42 +363,82 @@ class Tritac_ChannelEngine_Model_Observer
      * Generate products feed for ChannelEngine
      */
     public function generateFeed() {
-        // Initialize new output file
-        $io = new Varien_Io_File();
-
-        // Prepare feed file name and path
         $path = Mage::getBaseDir('var') . DS . 'export' . DS;
         $name = 'channelengine_products.xml';
         $file = $path . DS . $name;
 
-        // Write feed headers
+        $io = new Varien_Io_File();
         $io->setAllowCreateFolders(true);
         $io->open(array('path' => $path));
         $io->streamOpen($file, 'w+');
         $io->streamLock(true);
         $io->streamWrite('<?xml version="1.0" encoding="UTF-8"?>' . "\n");
         $io->streamWrite('<ArrayOfProduct xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' . "\n");
+        $start_memory = memory_get_usage();
 
-        $collection = Mage::getResourceModel('catalog/product_collection');
+        /**
+         * Prepare categories array
+         */
+        $categoryArray = array();
+        $parent     = Mage::app()->getStore()->getRootCategoryId();
+        $category = Mage::getModel('catalog/category');
+        if ($category->checkId($parent)) {
+            $storeCategories = $category->getCategories($parent, 0, true, true, true);
+            foreach($storeCategories as $_category) {
+                $categoryArray[$_category->getId()] = $_category->getData();
+            }
+        }
+
+        /**
+         * Prepare custom options array
+         */
+        $optionsArray = array();
+        $_options = Mage::getModel('catalog/product_option')
+            ->getCollection()
+            ->addTitleToResult()
+            ->addPriceToResult()
+            ->addValuesToResult()
+            ->setOrder('sort_order', 'asc');
+        foreach($_options as $_option) {
+            $productId = $_option->getProductId();
+            $optionId = $_option->getOptionId();
+            $optionsArray[$productId][$optionId] = $_option->getData();
+            if($_option->getType() == Mage_Catalog_Model_Product_Option::OPTION_TYPE_DROP_DOWN) {
+                $optionsArray[$productId][$optionId]['values'] = $_option->getValues();
+            }
+        }
+
+        /**
+         * Retrieve product collection
+         */
+        $collection = Mage::getModel('catalog/product')->getCollection();
         $collection->addAttributeToSelect(array('name', 'description', 'image', 'url_key', 'price', 'visibility'), 'left');
         $collection->addFieldToFilter('type_id', 'simple');
-
-        // Join inventory information
+        // Add qty and category fields
         $collection->getSelect()
             ->joinLeft(
                 array('csi' => Mage::getSingleton('core/resource')->getTableName('cataloginventory/stock_item')),
                 '`e`.`entity_id` = `csi`.`product_id`',
                 array('qty' => 'COALESCE(`qty`, 0)')
-            );
+            )
+            ->joinLeft(
+                array('ccp' => Mage::getSingleton('core/resource')->getTableName('catalog/category_product')),
+                '`e`.`entity_id` = `ccp`.`product_id`',
+                array('category_id' => 'MAX(`ccp`.`category_id`)')
+            )
+            ->group('e.entity_id');
 
-        // Fetch query records one by one
         Mage::getSingleton('core/resource_iterator')->walk(
             $collection->getSelect(),
             array(array($this, 'callbackGenerateFeed')),
-            array('io' => $io)
+            array(
+                'io'            => $io,
+                'categories'    => $categoryArray,
+                'options'       => $optionsArray,
+                'startMemory'   => $start_memory
+            )
         );
 
-        // Write feed footer. Unlock and close file.
         $io->streamWrite('</ArrayOfProduct>');
         $io->streamUnlock();
         $io->streamClose();
@@ -407,53 +447,80 @@ class Tritac_ChannelEngine_Model_Observer
     }
 
     public function callbackGenerateFeed($args) {
-        $io = $args['io'];
-        $product = $args['row'];
+        $io         = $args['io'];
+        $product   = $args['row'];
+        $categories = $args['categories'];
+        $options    = $args['options'];
 
-        $productXml = "<Product>";
-        $productXml .= "<Id>".$product['entity_id']."</Id>";
-        $productXml .= "<Name>".$product['name']."</Name>";
-        $productXml .= "<Description>".$product['description']."</Description>";
-        $productXml .= "<Price>".$product['price']."</Price>";
-        $productXml .= "<ListPrice>".$product['msrp']."</ListPrice>";
-        $productXml .= "<PurchasePrice>".$product['base_price']."</PurchasePrice>";
-        $productXml .= "<Stock>".$product['qty']."</Stock>";
-        $productXml .= "<SKU>".$product['sku']."</SKU>";
-        $productXml .= "<Url>".$product['url_key']."</Url>";
+        $xml = '';
 
-        // If product has base image export it to feed
-        if($product['image'] != 'no_selection') {
-            $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['image']);
-            $productXml .= "<ImageUrl>".$imgUrl."</ImageUrl>";
+        if(isset($options[$product['entity_id']])) {
+            foreach($options[$product['entity_id']] as $option) {
+                if(isset($option['values'])) {
+                    foreach($option['values'] as $_value) {
+                        $product['id'] = $product['entity_id'].'_'.$option['option_id'].'_'.$_value->getId();
+                        $additional['title'] = str_replace(' ', '_', $option['default_title']);
+                        $additional['value'] = $_value->getDefaultTitle();
+                        $xml .= $this->_getProductXml($product, $categories, $additional);
+                    }
+                } else {
+                    $product['id'] = $product['entity_id'].'_'.$option['option_id'];
+                    $additional['title'] = str_replace(' ', '_', $option['default_title']);
+                    $additional['value'] = '';
+                    $xml .= $this->_getProductXml($product, $categories, $additional);
+                }
+            }
+        }else {
+            $product['id'] = $product['entity_id'];
+            $xml .= $this->_getProductXml($product, $categories);
         }
 
-        // Prepare product categories path
-        $adapter = Mage::getSingleton('core/resource')->getConnection('core/read');
+        $io->streamWrite($xml);
+    }
 
-        $select = $adapter->select('category_id')
-            ->from(Mage::getSingleton('core/resource')->getTableName('catalog/category_product'), 'category_id')
-            ->where('product_id = ?', $product['entity_id']);
+    protected function _getProductXml($product, $categories, $additional = null) {
+        $xml = "<Product>";
+        $xml .= "<Id>".$product['id']."</Id>";
+        $xml .= "<Name>".$product['name']."</Name>";
+        $xml .= "<Description>".$product['description']."</Description>";
+        $xml .= "<Price>".$product['price']."</Price>";
+        $xml .= "<ListPrice>".$product['msrp']."</ListPrice>";
+        $xml .= "<PurchasePrice>".$product['base_price']."</PurchasePrice>";
 
-        $categoryIds = $adapter->fetchCol($select);
+        //Retrieve product stock qty
+        $xml .= "<Stock>".$product['qty']."</Stock>";
+        $xml .= "<SKU>".$product['sku']."</SKU>";
+        $xml .= "<Url>".$product['url_key']."</Url>";
 
-        if(is_array($categoryIds)) {
-            $categoryId = end($categoryIds);
-            $categoryPathIds = Mage::getModel('catalog/category')->load($categoryId)->getPathIds();
+        if($product['image'] != 'no_selection') {
+            $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['image']);
+            $xml .= "<ImageUrl>".$imgUrl."</ImageUrl>";
+        }
+
+        if(!empty($product['category_id']) && !empty($categories)) {
+            $categoryId = $product['category_id'];
+            $categoryPathIds = explode('/', $categories[$categoryId]['path']);
             $categoryPath = null;
             foreach($categoryPathIds as $id) {
-                // Skip root category
                 if($id > 2) {
                     $categoryPath .= ($categoryPath) ? ' > ':'';
-                    $categoryPath .= Mage::getModel('catalog/category')->load($id)->getName();
+                    $categoryPath .= $categories[$id]['name'];
                 }
             }
             if($categoryPath) {
-                $productXml .= "<Category>".$categoryPath."</Category>";
+                $xml .= "<Category>".$categoryPath."</Category>";
             }
         }
 
-        $productXml .= "</Product>\n";
+        if(isset($additional['title']) && isset($additional['value'])) {
+            $xml .= sprintf("<%1\$s>%2\$s<%1\$s>",
+                $additional['title'],
+                $additional['value']
+            );
+        }
 
-        $io->streamWrite($productXml);
+        $xml .= "</Product>\n";
+
+        return $xml;
     }
 }
