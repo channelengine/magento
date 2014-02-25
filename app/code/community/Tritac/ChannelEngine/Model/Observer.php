@@ -70,7 +70,7 @@ class Tritac_ChannelEngine_Model_Observer
         /**
          * Check new orders existing
          */
-        if(is_null($orders))
+        if(is_null($orders) || $orders->count() == 0)
             return false;
 
         foreach($orders as $order) {
@@ -258,7 +258,6 @@ class Tritac_ChannelEngine_Model_Observer
         $_order = $_shipment->getOrder();
         $channelOrder = Mage::getModel('channelengine/order')->loadByOrderId($_order->getId());
         $channelOrderId = $channelOrder->getChannelOrderId();
-        $helper = Mage::helper('channelengine');
 
         /**
          * Check ChannelEngine order
@@ -359,11 +358,63 @@ class Tritac_ChannelEngine_Model_Observer
         }
     }
 
+    public function fetchReturns()
+    {
+        /**
+         * Check if client is initialized
+         */
+        if(is_null($this->_client))
+            return false;
+
+        /**
+         * Retrieve returns
+         */
+        $returns = $this->_client->getReturns(array(
+            Tritac_ChannelEngineApiClient_Enums_ReturnStatus::DECLARED
+        ));
+
+        /**
+         * Check declared returns
+         */
+        if(is_null($returns) || $returns->count() == 0)
+            return false;
+
+        foreach($returns as $return) {
+            $_channelOrder = Mage::getModel('channelengine/order')->loadByChannelOrderId($return->getOrderId());
+            $_order = Mage::getModel('sales/order')->load($_channelOrder->getOrderId());
+
+            if(!$_order->getIncrementId()) {
+                continue;
+            }
+
+            $status     = $return->getStatus(); // Get return status
+            $reason     = $return->getReason(); // Get return reason
+            $message    = "Magento Order #: <a href='".
+                Mage::helper('adminhtml')->getUrl('adminhtml/sales_order/view', array('order_id'=>$_order->getOrderId())).
+                "'>".
+                $_order->getIncrementId().
+                "</a><br />";
+            $message   .= "Status: {$status}<br />";
+            $message   .= "Reason: {$reason}<br />";
+            $message   .= "For more details visit your ChannelEngine <a href='http://www.channelengine.com' target='_blank'>account</a>";
+
+            if(!empty($message)) {
+                Mage::getModel('adminnotification/inbox')->addCritical(
+                    "You have new return from ChannelEngine (ChannelEngine Order #{$return->getOrderId()})",
+                    $message,
+                    'http://www.channelengine.com',
+                    false
+                );
+            }
+        }
+    }
+
     /**
      * Generate products feed for ChannelEngine
      */
-    public function generateFeed() {
-        $path = Mage::getBaseDir('var') . DS . 'export' . DS;
+    public function generateFeed()
+    {
+        $path = Mage::getBaseDir('media') . DS . 'channelengine' . DS;
         $name = 'channelengine_products.xml';
         $file = $path . DS . $name;
 
@@ -446,7 +497,8 @@ class Tritac_ChannelEngine_Model_Observer
         Mage::log("Products feed is generated successfully");
     }
 
-    public function callbackGenerateFeed($args) {
+    public function callbackGenerateFeed($args)
+    {
         $io         = $args['io'];
         $product   = $args['row'];
         $categories = $args['categories'];
@@ -478,7 +530,8 @@ class Tritac_ChannelEngine_Model_Observer
         $io->streamWrite($xml);
     }
 
-    protected function _getProductXml($product, $categories, $additional = null) {
+    protected function _getProductXml($product, $categories, $additional = null)
+    {
         $xml = "<Product>";
         $xml .= "<Id>".$product['id']."</Id>";
         $xml .= "<Name>".$product['name']."</Name>";

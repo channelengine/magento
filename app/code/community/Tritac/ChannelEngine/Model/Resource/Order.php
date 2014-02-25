@@ -31,4 +31,30 @@ class Tritac_ChannelEngine_Model_Resource_Order extends Mage_Core_Model_Resource
 
         return $this;
     }
+
+    /**
+     * Load channel order by channel order ID
+     *
+     * @param Tritac_ChannelEngine_Model_Order $order
+     * @param int $orderId
+     * @return Tritac_ChannelEngine_Model_Resource_Order
+     */
+    public function loadByChannelOrderId(Tritac_ChannelEngine_Model_Order $order, $orderId)
+    {
+
+        $adapter = $this->_getReadAdapter();
+        $bind    = array('channel_order_id' => $orderId);
+        $select  = $adapter->select()
+            ->from($this->getMainTable(), array($this->getIdFieldName()))
+            ->where('channel_order_id = :channel_order_id');
+
+        $entityId = $adapter->fetchOne($select, $bind);
+        if ($entityId) {
+            $this->load($order, $entityId );
+        } else {
+            $order->setData(array());
+        }
+
+        return $this;
+    }
 }

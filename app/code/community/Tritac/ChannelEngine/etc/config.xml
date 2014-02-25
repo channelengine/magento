@@ -139,6 +139,14 @@
                     <model>channelengine/observer::fetchNewOrders</model>
                 </run>
             </fetch_channelengine_orders>
+            <fetch_channelengine_returns>
+                <schedule>
+                    <cron_expr>*/5 * * * *</cron_expr>
+                </schedule>
+                <run>
+                    <model>channelengine/observer::fetchReturns</model>
+                </run>
+            </fetch_channelengine_returns>
             <generate_channelengine_feed>
                 <schedule>
                     <cron_expr>*/5 * * * *</cron_expr>
