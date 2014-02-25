@@ -389,6 +389,7 @@ class Tritac_ChannelEngine_Model_Observer
 
             $status     = $return->getStatus(); // Get return status
             $reason     = $return->getReason(); // Get return reason
+            $title      = "You have new return from ChannelEngine (ChannelEngine Order #{$return->getOrderId()})";
             $message    = "Magento Order #: <a href='".
                 Mage::helper('adminhtml')->getUrl('adminhtml/sales_order/view', array('order_id'=>$_order->getOrderId())).
                 "'>".
@@ -398,14 +399,26 @@ class Tritac_ChannelEngine_Model_Observer
             $message   .= "Reason: {$reason}<br />";
             $message   .= "For more details visit your ChannelEngine <a href='http://www.channelengine.com' target='_blank'>account</a>";
 
-            if(!empty($message)) {
-                Mage::getModel('adminnotification/inbox')->addCritical(
-                    "You have new return from ChannelEngine (ChannelEngine Order #{$return->getOrderId()})",
-                    $message,
-                    'http://www.channelengine.com',
-                    false
-                );
+            // Check if notification is already exist
+            $_resource  = Mage::getSingleton('core/resource');
+            $_connectionRead = $_resource->getConnection('core_read');
+            $select = $_connectionRead->select()
+                ->from($_resource->getTableName('adminnotification/inbox'))
+                ->where('title = ?', $title)
+                ->where('is_remove != 1')
+                ->limit(1);
+            $data = $_connectionRead->fetchRow($select);
+
+            if ($data) {
+                continue;
             }
+
+            // Add new notification
+            Mage::getModel('adminnotification/inbox')->addCritical(
+                $title,
+                $message,
+                'http://www.channelengine.com'
+            );
         }
     }
 
