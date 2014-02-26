@@ -456,12 +456,13 @@ class Tritac_ChannelEngine_Model_Observer
         /**
          * Prepare custom options array
          */
+        $storeId = Mage::app()->getStore()->getId();
         $optionsArray = array();
         $_options = Mage::getModel('catalog/product_option')
             ->getCollection()
-            ->addTitleToResult()
-            ->addPriceToResult()
-            ->addValuesToResult()
+            ->addTitleToResult($storeId)
+            ->addPriceToResult($storeId)
+            ->addValuesToResult($storeId)
             ->setOrder('sort_order', 'asc');
         foreach($_options as $_option) {
             $productId = $_option->getProductId();
@@ -579,7 +580,7 @@ class Tritac_ChannelEngine_Model_Observer
         }
 
         if(isset($additional['title']) && isset($additional['value'])) {
-            $xml .= sprintf("<%1\$s>%2\$s<%1\$s>",
+            $xml .= sprintf("<%1\$s>%2\$s</%1\$s>",
                 $additional['title'],
                 $additional['value']
             );
