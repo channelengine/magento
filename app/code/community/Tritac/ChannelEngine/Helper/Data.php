@@ -11,26 +11,36 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
     protected $_defaultTimeToShip = 5;
 
     /**
-     * Get extension config
+     * Get extension general config
      *
      * @return array
      */
     public function getConfig()
     {
         if(empty($this->_config))
-            $this->_config = Mage::getStoreConfig('channelengine/general');
+            $this->_config = Mage::getStoreConfig('channelengine');
 
         return $this->_config;
     }
 
     /**
-     * Check required config data
+     * Get extension general config
+     *
+     * @return array
+     */
+    public function getGeneralConfig()
+    {
+        return $this->_config['general'];
+    }
+
+    /**
+     * Check required general config data
      *
      * @return bool
      */
-    public function checkConfig()
+    public function checkGeneralConfig()
     {
-        $config = $this->_config;
+        $config = $this->getGeneralConfig();
 
         if(empty($config['api_key']) || empty($config['api_secret']) || empty($config['tenant'])) {
             Mage::log(
@@ -46,7 +56,8 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
 
     public function getExpectedShipmentDate()
     {
-        $weekdays = (int) Mage::getStoreConfig('channelengine/shipping/expected_date');
+        $config = $this->getConfig();
+        $weekdays = (int) $config['shipping']['expected_date'];
         if($weekdays <= 0)
             $weekdays = $this->_defaultTimeToShip;
 

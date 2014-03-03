@@ -37,11 +37,11 @@ class Tritac_ChannelEngine_Model_Observer
         /**
          * Check required config parameters. Initialize API client.
          */
-        if($this->_helper->checkConfig()) {
+        if($this->_helper->checkGeneralConfig()) {
             $this->_client = new Tritac_ChannelEngineApiClient_Client(
-                $this->_config['api_key'],
-                $this->_config['api_secret'],
-                $this->_config['tenant']
+                $this->_config['general']['api_key'],
+                $this->_config['general']['api_secret'],
+                $this->_config['general']['tenant']
             );
         }
     }
@@ -358,6 +358,11 @@ class Tritac_ChannelEngine_Model_Observer
         }
     }
 
+    /**
+     * Fetch new returns from channelengine
+     *
+     * @return bool
+     */
     public function fetchReturns()
     {
         /**
@@ -444,7 +449,7 @@ class Tritac_ChannelEngine_Model_Observer
          * Prepare categories array
          */
         $categoryArray = array();
-        $parent     = Mage::app()->getStore()->getRootCategoryId();
+        $parent = Mage::app()->getWebsite(true)->getDefaultStore()->getRootCategoryId();
         $category = Mage::getModel('catalog/category');
         if ($category->checkId($parent)) {
             $storeCategories = $category->getCategories($parent, 0, true, true, true);
@@ -477,9 +482,9 @@ class Tritac_ChannelEngine_Model_Observer
          * Retrieve product collection
          */
         $collection = Mage::getModel('catalog/product')->getCollection();
-        $collection->addAttributeToSelect(array('name', 'description', 'image', 'url_key', 'price', 'visibility'), 'left');
+        $collection->addAttributeToSelect(array('name', 'description', 'image', 'url_key', 'price', 'visibility', 'msrp'), 'left');
         $collection->addFieldToFilter('type_id', 'simple');
-        // Add qty and category fields
+        // Add qty and category fields to select
         $collection->getSelect()
             ->joinLeft(
                 array('csi' => Mage::getSingleton('core/resource')->getTableName('cataloginventory/stock_item')),
@@ -520,7 +525,12 @@ class Tritac_ChannelEngine_Model_Observer
 
         $xml = '';
 
+        /**
+         * Add product custom options to feed.
+         * Each option value will generate new product row
+         */
         if(isset($options[$product['entity_id']])) {
+            $product['group_code'] = $product['entity_id'];
             foreach($options[$product['entity_id']] as $option) {
                 if(isset($option['values'])) {
                     foreach($option['values'] as $_value) {
@@ -548,22 +558,46 @@ class Tritac_ChannelEngine_Model_Observer
     {
         $xml = "<Product>";
         $xml .= "<Id>".$product['id']."</Id>";
+
+        // Add group code with product id if product have custom options
+        if(isset($product['group_code'])) {
+            $xml .= "<GroupCode>".$product['group_code']."</GroupCode>";
+        }
         $xml .= "<Name>".$product['name']."</Name>";
         $xml .= "<Description>".$product['description']."</Description>";
         $xml .= "<Price>".$product['price']."</Price>";
         $xml .= "<ListPrice>".$product['msrp']."</ListPrice>";
-        $xml .= "<PurchasePrice>".$product['base_price']."</PurchasePrice>";
 
-        //Retrieve product stock qty
+        // Retrieve product stock qty
         $xml .= "<Stock>".$product['qty']."</Stock>";
         $xml .= "<SKU>".$product['sku']."</SKU>";
-        $xml .= "<Url>".$product['url_key']."</Url>";
 
-        if($product['image'] != 'no_selection') {
+        // VAT and Shipping Time are pre configured in extension settings
+        if(!empty($this->_config['feed']['vat_rate'])) {
+            $vat = $this->_config['feed']['vat_rate'];
+            $xml .= "<VAT>".$vat."</VAT>";
+            $purchasePrice = $product['price'] * (1 - $vat / 100);
+            $xml .= "<PurchasePrice>".$purchasePrice."</PurchasePrice>";
+        }
+        if(!empty($this->_config['feed']['shipping_time'])) {
+            $shippingTime = $this->_config['feed']['shipping_time'];
+            $xml .= "<ShippingTime>".$shippingTime."</ShippingTime>";
+        }
+
+        // Retrieve product url
+        $productModel = Mage::getModel('catalog/product');
+        $productModel->setData('entity_id', $product['entity_id']);
+        $productModel->setData('url_key', $product['url_key']);
+        $productModel->setData('store_id', Mage::app()->getWebsite(true)->getDefaultStore()->getId());
+        $url = $productModel->getProductUrl();
+        $xml .= "<Url>".$url."</Url>";
+
+        if(isset($product['image']) && $product['image'] != 'no_selection') {
             $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['image']);
             $xml .= "<ImageUrl>".$imgUrl."</ImageUrl>";
         }
 
+        // Prepare category path
         if(!empty($product['category_id']) && !empty($categories)) {
             $categoryId = $product['category_id'];
             $categoryPathIds = explode('/', $categories[$categoryId]['path']);

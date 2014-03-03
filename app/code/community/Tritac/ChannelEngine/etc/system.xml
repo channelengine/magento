@@ -72,6 +72,35 @@
                         </expected_date>
                     </fields>
                 </shipping>
+                <feed translate="label">
+                    <label>Products Feed</label>
+                    <frontend_type>text</frontend_type>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <sort_order>3</sort_order>
+                    <fields>
+                        <vat_rate translate="label">
+                            <label>Vat Rate (%)</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </vat_rate>
+                        <shipping_time translate="label">
+                            <label>Shipping Time</label>
+                            <frontend_type>text</frontend_type>
+                            <comment>
+                                <![CDATA[<span class="notice">For example: "Ordered before 9:00PM, Delivered tomorrow"</span>]]>
+                            </comment>
+                            <sort_order>2</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </shipping_time>
+                    </fields>
+                </feed>
             </groups>
         </channelengine>
     </sections>
