@@ -90,12 +90,18 @@ class Tritac_ChannelEngine_Model_Observer
                     // Load magento product
                     $_product = Mage::getModel('catalog/product')
                         ->setStoreId(Mage::app()->getStore()->getId());
-                    $productId = $_product->getIdBySku($item->getMerchantProductNo());
-                    $_product->load($productId);
+                    $productNo = $item->getMerchantProductNo();
+                    $ids = explode('_', $productNo);
+                    $productOptions = array();
+                    $_product->load($ids[0]);
+                    if(count($ids) == 3) {
+                        $productOptions = array($ids[1] => $ids[2]);
+                    }
 
                     // Prepare product parameters for quote
                     $params = new Varien_Object();
                     $params->setQty($item->getQuantity());
+                    $params->setOptions($productOptions);
 
                     // Add product to quote
                     try {
