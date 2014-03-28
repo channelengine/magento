@@ -2,16 +2,16 @@
 
 <config>
     <tabs>
-        <Tritac translate="label">
-            <label>Tritac ChannelEngine</label>
+        <channelengine_com translate="label">
+            <label>ChannelEngine.com</label>
             <sort_order>220</sort_order>
-        </Tritac>
+        </channelengine_com>
     </tabs>
 
     <sections>
         <channelengine translate="label" module="channelengine">
             <label>Settings</label>
-            <tab>Tritac</tab>
+            <tab>channelengine_com</tab>
             <show_in_default>1</show_in_default>
             <show_in_website>1</show_in_website>
             <show_in_store>1</show_in_store>
@@ -44,6 +44,9 @@
                         <tenant translate="label">
                             <label>Account Name</label>
                             <frontend_type>text</frontend_type>
+                            <comment>
+                                <![CDATA[<span class="notice">Your account name can be found in the ChannelEngine address: <strong>your-account-name</strong>.channelengine.net</span>]]>
+                            </comment>
                             <sort_order>3</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
@@ -60,10 +63,10 @@
                     <sort_order>2</sort_order>
                     <fields>
                         <expected_date translate="label">
-                            <label>Expected shipment period</label>
+                            <label>Expected Shipping Period (For backorders)</label>
                             <frontend_type>text</frontend_type>
                             <comment>
-                                <![CDATA[<span class="notice">Please set weekdays count. Applies to order items with status "In Backorder"</span>]]>
+                                <![CDATA[<span class="notice">Please set the number of working days. Applies to order items with status "In Backorder"</span>]]>
                             </comment>
                             <sort_order>2</sort_order>
                             <show_in_default>1</show_in_default>
@@ -73,7 +76,7 @@
                     </fields>
                 </shipping>
                 <feed translate="label">
-                    <label>Products Feed</label>
+                    <label>Product Feed</label>
                     <frontend_type>text</frontend_type>
                     <show_in_default>1</show_in_default>
                     <show_in_website>1</show_in_website>
@@ -81,7 +84,7 @@
                     <sort_order>3</sort_order>
                     <fields>
                         <vat_rate translate="label">
-                            <label>Vat Rate (%)</label>
+                            <label>Default Vat Rate (%)</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>1</sort_order>
                             <show_in_default>1</show_in_default>
