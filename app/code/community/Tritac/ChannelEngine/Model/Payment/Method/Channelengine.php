@@ -11,4 +11,12 @@ class Tritac_ChannelEngine_Model_Payment_Method_Channelengine extends Mage_Payme
      */
     protected $_code = 'channelengine';
 
+    public function isAvailable($quote = null)
+    {
+        if($quote->getIsSystem() && $quote->getPayment()->getMethod() == $this->_code) {
+            return true;
+        }
+
+        return false;
+    }
 }

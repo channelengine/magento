@@ -172,6 +172,7 @@ class Tritac_ChannelEngine_Model_Observer
                 ->setCustomerGroupId(Mage_Customer_Model_Group::NOT_LOGGED_IN_ID);
 
             // Set custom payment method
+            $quote->setIsSystem(true);
             $quote->getPayment()->importData(array('method' => 'channelengine'));
 
             // Save quote and convert it to new order
