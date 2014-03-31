@@ -73,7 +73,8 @@
             <channelengine>
                 <active>1</active>
                 <model>channelengine/payment_method_channelengine</model>
-                <title>Paid with ChannelEngine</title>
+                <name>ChannelEngine</name>
+                <title>Order paid on Marketplace Channel - ChannelEngine</title>
                 <allowspecific>0</allowspecific>
                 <order_status>pending</order_status>
             </channelengine>
@@ -83,8 +84,7 @@
                 <active>1</active>
                 <sallowspecific>0</sallowspecific>
                 <model>channelengine/carrier_channelengine</model>
-                <name>ChannelEngine</name>
-                <title>shipping already paid</title>
+                <title>Shipping paid on Marketplace Channel - ChannelEngine</title>
                 <price>0</price>
                 <specificerrmsg>This shipping method is currently unavailable. If you would like to ship using this shipping method, please contact us.</specificerrmsg>
             </channelengine>
@@ -94,7 +94,7 @@
     <frontend>
         <routers>
             <channelengine>
-                <use>standart</use>
+                <use>standard</use>
                 <args>
                     <module>Tritac_ChannelEngine</module>
                     <frontName>channelengine</frontName>
@@ -149,7 +149,7 @@
             </fetch_channelengine_returns>
             <generate_channelengine_feed>
                 <schedule>
-                    <cron_expr>*/5 * * * *</cron_expr>
+                    <cron_expr>*/30 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>channelengine/observer::generateFeed</model>
