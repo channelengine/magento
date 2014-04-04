@@ -571,7 +571,7 @@ class Tritac_ChannelEngine_Model_Observer
             $xml .= "<GroupCode>".$product['group_code']."</GroupCode>";
         }
         $xml .= "<Name>".$product['name']."</Name>";
-        $xml .= "<Description>".$product['description']."</Description>";
+        $xml .= "<Description><![CDATA[".$product['description']."]]></Description>";
         $xml .= "<Price>".$product['price']."</Price>";
         $xml .= "<ListPrice>".$product['msrp']."</ListPrice>";
 
