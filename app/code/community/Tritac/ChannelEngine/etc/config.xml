@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Tritac_ChannelEngine>
-            <version>0.2.0.0</version>
+            <version>0.2.0.2</version>
         </Tritac_ChannelEngine>
     </modules>
 
@@ -133,7 +133,7 @@
         <jobs>
             <fetch_channelengine_orders>
                 <schedule>
-                    <cron_expr>*/5 * * * *</cron_expr>
+                    <cron_expr>*/15 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>channelengine/observer::fetchNewOrders</model>
@@ -141,7 +141,7 @@
             </fetch_channelengine_orders>
             <fetch_channelengine_returns>
                 <schedule>
-                    <cron_expr>*/5 * * * *</cron_expr>
+                    <cron_expr>*/15 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>channelengine/observer::fetchReturns</model>
@@ -149,7 +149,7 @@
             </fetch_channelengine_returns>
             <generate_channelengine_feed>
                 <schedule>
-                    <cron_expr>*/30 * * * *</cron_expr>
+                    <cron_expr>30 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>channelengine/observer::generateFeed</model>
