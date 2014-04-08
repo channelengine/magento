@@ -568,16 +568,16 @@ class Tritac_ChannelEngine_Model_Observer
 
         // Add group code with product id if product have custom options
         if(isset($product['group_code'])) {
-            $xml .= "<GroupCode>".$product['group_code']."</GroupCode>";
+            $xml .= "<GroupCode><![CDATA[".$product['group_code']."]]></GroupCode>";
         }
-        $xml .= "<Name>".$product['name']."</Name>";
+        $xml .= "<Name><![CDATA[".$product['name']."]]></Name>";
         $xml .= "<Description><![CDATA[".$product['description']."]]></Description>";
         $xml .= "<Price>".$product['price']."</Price>";
         $xml .= "<ListPrice>".$product['msrp']."</ListPrice>";
 
         // Retrieve product stock qty
         $xml .= "<Stock>".$product['qty']."</Stock>";
-        $xml .= "<SKU>".$product['sku']."</SKU>";
+        $xml .= "<SKU><![CDATA[".$product['sku']."]]></SKU>";
 
         // VAT and Shipping Time are pre configured in extension settings
         if(!empty($this->_config['feed']['vat_rate'])) {
@@ -588,7 +588,7 @@ class Tritac_ChannelEngine_Model_Observer
         }
         if(!empty($this->_config['feed']['shipping_time'])) {
             $shippingTime = $this->_config['feed']['shipping_time'];
-            $xml .= "<ShippingTime>".$shippingTime."</ShippingTime>";
+            $xml .= "<ShippingTime><![CDATA[".$shippingTime."]]></ShippingTime>";
         }
 
         // Retrieve product url
@@ -616,12 +616,12 @@ class Tritac_ChannelEngine_Model_Observer
                 }
             }
             if($categoryPath) {
-                $xml .= "<Category>".$categoryPath."</Category>";
+                $xml .= "<Category><![CDATA[".$categoryPath."]]></Category>";
             }
         }
 
         if(isset($additional['title']) && isset($additional['value'])) {
-            $xml .= sprintf("<%1\$s>%2\$s</%1\$s>",
+            $xml .= sprintf("<%1\$s><![CDATA[%2\$s]]></%1\$s>",
                 $additional['title'],
                 $additional['value']
             );
