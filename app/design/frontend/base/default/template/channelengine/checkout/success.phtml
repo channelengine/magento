@@ -1,0 +1,31 @@
+<?php
+$order = Mage::getModel('sales/order')->load(Mage::getSingleton('checkout/session')->getLastOrderId());
+?>
+<script>
+    // Order(orderId, total, vat, shippingCost, city, country)
+    var order = new CE.Models.Order('<?php echo $order->getId() ?>', <?php echo $order->getGrandTotal() ?>, <?php echo ( $order->getTaxRefunded() ? $order->getTaxRefunded() : 0 ) ; ?>, <?php echo ( $order->getShippingAmount() ? $order->getShippingAmount() : 0 ) ?>, '<?php echo $order->getBillingAddress()->getCity()?>', '<?php echo $order->getBillingAddress()->getCountry()?>');
+
+    // OrderLine(productId, name, category, price, quantity)
+    <?php foreach($order->getAllItems() as $item): ?>
+        <?php
+            $categoryIds = Mage::getModel('catalog/product')->load($item->getProductId())->getCategoryIds();
+            $categoryId = end($categoryIds);
+            $category = Mage::getModel('catalog/category')->load($categoryId);
+            $path = explode('/', $category->getPath());
+            $categoryPath = '';
+
+            foreach($path as $catId) {
+                if($catId > 2) {
+                    $cat = Mage::getModel('catalog/category')->load($catId);
+                    if($categoryPath != '') {
+                        $categoryPath .= ' > ';
+                    }
+                    $categoryPath .= $cat->getName();
+                }
+            }
+        ?>
+        order.OrderLines.push(new CE.Models.OrderLine('<?php echo $item->getProductId() ?>', '<?php echo $item->getProduct()->getName() ?>', '<?php echo $categoryPath ?>', <?php echo $item->getProduct()->getPrice()?>, <?php echo intval($item->getQtyOrdered()) ?>));
+    <?php endforeach ?>
+
+    CE.Tracking.PushOrder(order);
+</script>

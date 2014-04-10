@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<layout version="0.1.0">
+    <default>
+        <reference name="head">
+            <block type="core/text" name="channelengine.tracking">
+                <action method="setText">
+                    <text><![CDATA[<script src="//plugindev.channelengine.net/clicks/js"></script>]]></text>
+                </action>
+            </block>
+        </reference>
+    </default>
+
+
+
+    <checkout_onepage_success translate="label">
+        <reference name="content">
+            <block type="checkout/onepage_success" name="channelengine.checkout.success" template="channelengine/checkout/success.phtml"/>
+        </reference>
+    </checkout_onepage_success>
+
+</layout>

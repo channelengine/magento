@@ -87,15 +87,15 @@ class Tritac_ChannelEngine_Model_Observer
 
                 foreach($lines as $item) {
 
-                    // Load magento product
-                    $_product = Mage::getModel('catalog/product')
-                        ->setStoreId(Mage::app()->getStore()->getId());
                     $productNo = $item->getMerchantProductNo();
                     $ids = explode('_', $productNo);
+                    // Load magento product
+                    $_product = Mage::getModel('catalog/product')
+                        ->setStoreId($ids[0]);
                     $productOptions = array();
                     $_product->load($ids[0]);
-                    if(count($ids) == 3) {
-                        $productOptions = array($ids[1] => $ids[2]);
+                    if(count($ids) == 4) {
+                        $productOptions = array($ids[2] => intval($ids[3]));
                     }
 
                     // Prepare product parameters for quote
@@ -466,55 +466,66 @@ class Tritac_ChannelEngine_Model_Observer
         }
 
         /**
-         * Prepare custom options array
+         * Export products from each store.
+         * Note: products with undefined website id will not be export.
          */
-        $storeId = Mage::app()->getStore()->getId();
-        $optionsArray = array();
-        $_options = Mage::getModel('catalog/product_option')
-            ->getCollection()
-            ->addTitleToResult($storeId)
-            ->addPriceToResult($storeId)
-            ->addValuesToResult($storeId)
-            ->setOrder('sort_order', 'asc');
-        foreach($_options as $_option) {
-            $productId = $_option->getProductId();
-            $optionId = $_option->getOptionId();
-            $optionsArray[$productId][$optionId] = $_option->getData();
-            if($_option->getType() == Mage_Catalog_Model_Product_Option::OPTION_TYPE_DROP_DOWN) {
-                $optionsArray[$productId][$optionId]['values'] = $_option->getValues();
+        $stores = Mage::getModel('core/store')->getCollection();
+        foreach($stores as $store) {
+
+            /**
+             * Prepare custom options array
+             */
+            $storeId = $store->getId();
+            $optionsArray = array();
+            $_options = Mage::getModel('catalog/product_option')
+                ->getCollection()
+                ->addTitleToResult($storeId)
+                ->addPriceToResult($storeId)
+                ->addValuesToResult($storeId)
+                ->setOrder('sort_order', 'asc');
+            foreach($_options as $_option) {
+                $productId = $_option->getProductId();
+                $optionId = $_option->getOptionId();
+                $optionsArray[$productId][$optionId] = $_option->getData();
+                if($_option->getType() == Mage_Catalog_Model_Product_Option::OPTION_TYPE_DROP_DOWN) {
+                    $optionsArray[$productId][$optionId]['values'] = $_option->getValues();
+                }
             }
+
+            /**
+             * Retrieve product collection
+             */
+            $collection = Mage::getModel('catalog/product')->getCollection();
+            $collection->addAttributeToSelect(array('name', 'description', 'image', 'url_key', 'price', 'visibility', 'msrp'), 'left');
+            $collection->addFieldToFilter('type_id', 'simple');
+            $collection->addStoreFilter($store);
+            $collection->addAttributeToSort('entity_id', 'DESC');
+            // Add qty and category fields to select
+            $collection->getSelect()
+                ->joinLeft(
+                    array('csi' => Mage::getSingleton('core/resource')->getTableName('cataloginventory/stock_item')),
+                    '`e`.`entity_id` = `csi`.`product_id`',
+                    array('qty' => 'COALESCE(`qty`, 0)')
+                )
+                ->joinLeft(
+                    array('ccp' => Mage::getSingleton('core/resource')->getTableName('catalog/category_product')),
+                    '`e`.`entity_id` = `ccp`.`product_id`',
+                    array('category_id' => 'MAX(`ccp`.`category_id`)')
+                )
+                ->group('e.entity_id');
+
+            Mage::getSingleton('core/resource_iterator')->walk(
+                $collection->getSelect(),
+                array(array($this, 'callbackGenerateFeed')),
+                array(
+                    'io'            => $io,
+                    'categories'    => $categoryArray,
+                    'options'       => $optionsArray,
+                    'store'         => $store,
+                    'startMemory'   => $start_memory,
+                )
+            );
         }
-
-        /**
-         * Retrieve product collection
-         */
-        $collection = Mage::getModel('catalog/product')->getCollection();
-        $collection->addAttributeToSelect(array('name', 'description', 'image', 'url_key', 'price', 'visibility', 'msrp'), 'left');
-        $collection->addFieldToFilter('type_id', 'simple');
-        // Add qty and category fields to select
-        $collection->getSelect()
-            ->joinLeft(
-                array('csi' => Mage::getSingleton('core/resource')->getTableName('cataloginventory/stock_item')),
-                '`e`.`entity_id` = `csi`.`product_id`',
-                array('qty' => 'COALESCE(`qty`, 0)')
-            )
-            ->joinLeft(
-                array('ccp' => Mage::getSingleton('core/resource')->getTableName('catalog/category_product')),
-                '`e`.`entity_id` = `ccp`.`product_id`',
-                array('category_id' => 'MAX(`ccp`.`category_id`)')
-            )
-            ->group('e.entity_id');
-
-        Mage::getSingleton('core/resource_iterator')->walk(
-            $collection->getSelect(),
-            array(array($this, 'callbackGenerateFeed')),
-            array(
-                'io'            => $io,
-                'categories'    => $categoryArray,
-                'options'       => $optionsArray,
-                'startMemory'   => $start_memory
-            )
-        );
 
         $io->streamWrite('</ArrayOfProduct>');
         $io->streamUnlock();
@@ -526,12 +537,14 @@ class Tritac_ChannelEngine_Model_Observer
     public function callbackGenerateFeed($args)
     {
         $io         = $args['io'];
-        $product   = $args['row'];
+        $product    = $args['row'];
         $categories = $args['categories'];
         $options    = $args['options'];
+        $store      = $args['store'];
 
         $xml = '';
 
+        $product['store_id'] = $store->getId();
         /**
          * Add product custom options to feed.
          * Each option value will generate new product row
@@ -564,7 +577,7 @@ class Tritac_ChannelEngine_Model_Observer
     protected function _getProductXml($product, $categories, $additional = null)
     {
         $xml = "<Product>";
-        $xml .= "<Id>".$product['id']."</Id>";
+        $xml .= "<Id>".$product['store_id'].'_'.$product['id']."</Id>";
 
         // Add group code with product id if product have custom options
         if(isset($product['group_code'])) {

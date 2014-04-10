@@ -101,6 +101,13 @@
                 </args>
             </channelengine>
         </routers>
+        <layout>
+            <updates>
+                <channelengine>
+                    <file>channelengine.xml</file>
+                </channelengine>
+            </updates>
+        </layout>
     </frontend>
 
     <adminhtml>
