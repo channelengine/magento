@@ -79,8 +79,6 @@ class Tritac_ChannelEngine_Model_Observer
             $shippingAddress = $order->getShippingAddress();
             if(empty($billingAddress)) continue;
 
-            // Initialize new quote
-            $quote = Mage::getModel('sales/quote')->setStoreId(Mage::app()->getDefaultStoreView()->getStoreId());
             $lines = $order->getLines();
 
             if(!empty($lines)) {
@@ -89,14 +87,19 @@ class Tritac_ChannelEngine_Model_Observer
 
                     $productNo = $item->getMerchantProductNo();
                     $ids = explode('_', $productNo);
+                    $storeId = $ids[0];
+                    $productId = $ids[1];
                     // Load magento product
                     $_product = Mage::getModel('catalog/product')
-                        ->setStoreId($ids[0]);
+                        ->setStoreId($storeId);
                     $productOptions = array();
-                    $_product->load($ids[0]);
+                    $_product->load($productId);
                     if(count($ids) == 4) {
                         $productOptions = array($ids[2] => intval($ids[3]));
                     }
+
+                    // Initialize new quote
+                    $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
 
                     // Prepare product parameters for quote
                     $params = new Varien_Object();
