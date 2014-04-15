@@ -588,19 +588,19 @@ class Tritac_ChannelEngine_Model_Observer
         }
         $xml .= "<Name><![CDATA[".$product['name']."]]></Name>";
         $xml .= "<Description><![CDATA[".$product['description']."]]></Description>";
-        $xml .= "<Price>".$product['price']."</Price>";
-        $xml .= "<ListPrice>".$product['msrp']."</ListPrice>";
+        $xml .= "<Price><![CDATA[".$product['price']."]]></Price>";
+        $xml .= "<ListPrice><![CDATA[".$product['msrp']."]]></ListPrice>";
 
         // Retrieve product stock qty
-        $xml .= "<Stock>".$product['qty']."</Stock>";
+        $xml .= "<Stock><![CDATA[".$product['qty']."]]></Stock>";
         $xml .= "<SKU><![CDATA[".$product['sku']."]]></SKU>";
 
         // VAT and Shipping Time are pre configured in extension settings
         if(!empty($this->_config['feed']['vat_rate'])) {
             $vat = $this->_config['feed']['vat_rate'];
-            $xml .= "<VAT>".$vat."</VAT>";
+            $xml .= "<VAT><![CDATA[".$vat."]]></VAT>";
             $purchasePrice = $product['price'] * (1 - $vat / 100);
-            $xml .= "<PurchasePrice>".$purchasePrice."</PurchasePrice>";
+            $xml .= "<PurchasePrice><![CDATA[".$purchasePrice."]]></PurchasePrice>";
         }
 
         $shippingTime = ($product['qty'] > 0) ? $this->_config['feed']['shipping_time'] : $this->_config['feed']['shipping_time_oos'];
@@ -615,11 +615,11 @@ class Tritac_ChannelEngine_Model_Observer
         $productModel->setData('url_key', $product['url_key']);
         $productModel->setData('store_id', Mage::app()->getWebsite(true)->getDefaultStore()->getId());
         $url = $productModel->getProductUrl();
-        $xml .= "<Url>".$url."</Url>";
+        $xml .= "<Url><![CDATA[".$url."]]></Url>";
 
         if(isset($product['image']) && $product['image'] != 'no_selection') {
             $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['image']);
-            $xml .= "<ImageUrl>".$imgUrl."</ImageUrl>";
+            $xml .= "<ImageUrl><![CDATA[".$imgUrl."]]></ImageUrl>";
         }
 
         // Prepare category path
@@ -639,8 +639,9 @@ class Tritac_ChannelEngine_Model_Observer
         }
 
         if(isset($additional['title']) && isset($additional['value'])) {
+            $title = preg_replace("/[^a-zA-Z0-9]/", "", $additional['title']);
             $xml .= sprintf("<%1\$s><![CDATA[%2\$s]]></%1\$s>",
-                $additional['title'],
+                $title,
                 $additional['value']
             );
         }
