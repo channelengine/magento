@@ -30,6 +30,9 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
      */
     public function getGeneralConfig()
     {
+        if(empty($this->_config))
+            $this->_config = Mage::getStoreConfig('channelengine');
+
         return $this->_config['general'];
     }
 

@@ -92,7 +92,7 @@
                             <show_in_store>1</show_in_store>
                         </vat_rate>
                         <shipping_time translate="label">
-                            <label>Shipping Time</label>
+                            <label>Shipping Time (In Stock products)</label>
                             <frontend_type>text</frontend_type>
                             <comment>
                                 <![CDATA[<span class="notice">For example: "Ordered before 9:00PM, Delivered tomorrow"</span>]]>
@@ -102,6 +102,17 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </shipping_time>
+                        <shipping_time_oos translate="label">
+                            <label>Shipping Time (Out Of Stock products)</label>
+                            <frontend_type>text</frontend_type>
+                            <comment>
+                                <![CDATA[<span class="notice">For example: "Ordered before 9:00PM, Delivered tomorrow"</span>]]>
+                            </comment>
+                            <sort_order>3</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </shipping_time_oos>
                     </fields>
                 </feed>
             </groups>

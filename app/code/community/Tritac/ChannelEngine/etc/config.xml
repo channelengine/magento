@@ -13,6 +13,9 @@
                     <sales_order_grid>Tritac_ChannelEngine_Block_Sales_Order_Grid</sales_order_grid>
                 </rewrite>
             </adminhtml>
+            <channelengine>
+                <class>Tritac_ChannelEngine_Block</class>
+            </channelengine>
         </blocks>
         <helpers>
             <channelengine>

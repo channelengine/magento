@@ -602,8 +602,10 @@ class Tritac_ChannelEngine_Model_Observer
             $purchasePrice = $product['price'] * (1 - $vat / 100);
             $xml .= "<PurchasePrice>".$purchasePrice."</PurchasePrice>";
         }
-        if(!empty($this->_config['feed']['shipping_time'])) {
-            $shippingTime = $this->_config['feed']['shipping_time'];
+
+        $shippingTime = ($product['qty'] > 0) ? $this->_config['feed']['shipping_time'] : $this->_config['feed']['shipping_time_oos'];
+
+        if($shippingTime) {
             $xml .= "<ShippingTime><![CDATA[".$shippingTime."]]></ShippingTime>";
         }
 

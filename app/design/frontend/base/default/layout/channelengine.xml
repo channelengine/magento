@@ -2,11 +2,7 @@
 <layout version="0.1.0">
     <default>
         <reference name="head">
-            <block type="core/text" name="channelengine.tracking">
-                <action method="setText">
-                    <text><![CDATA[<script src="//plugindev.channelengine.net/clicks/js"></script>]]></text>
-                </action>
-            </block>
+            <block type="channelengine/head" name="channelengine.tracking" template="channelengine/head.phtml" />
         </reference>
     </default>
 
