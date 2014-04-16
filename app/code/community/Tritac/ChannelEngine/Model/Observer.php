@@ -402,9 +402,11 @@ class Tritac_ChannelEngine_Model_Observer
                 continue;
             }
 
+
+            $link       = "https://". $this->_config['general']['tenant'] .".channelengine.net/orders/view/". $return->getOrderId();
             $status     = $return->getStatus(); // Get return status
             $reason     = $return->getReason(); // Get return reason
-            $title      = "You have new return from ChannelEngine (ChannelEngine Order #{$return->getOrderId()})";
+            $title      = "A new return was declared in ChannelEngine (ChannelEngine Order #{$return->getOrderId()})";
             $message    = "Magento Order #: <a href='".
                 Mage::helper('adminhtml')->getUrl('adminhtml/sales_order/view', array('order_id'=>$_order->getOrderId())).
                 "'>".
@@ -412,7 +414,7 @@ class Tritac_ChannelEngine_Model_Observer
                 "</a><br />";
             $message   .= "Status: {$status}<br />";
             $message   .= "Reason: {$reason}<br />";
-            $message   .= "For more details visit your ChannelEngine <a href='http://www.channelengine.com' target='_blank'>account</a>";
+            $message   .= "For more details visit ChannelEngine your <a href='".$link."' target='_blank'>account</a>";
 
             // Check if notification is already exist
             $_resource  = Mage::getSingleton('core/resource');
@@ -432,7 +434,7 @@ class Tritac_ChannelEngine_Model_Observer
             Mage::getModel('adminnotification/inbox')->addCritical(
                 $title,
                 $message,
-                'http://www.channelengine.com'
+                $link
             );
         }
     }
@@ -452,7 +454,7 @@ class Tritac_ChannelEngine_Model_Observer
         $io->streamOpen($file, 'w+');
         $io->streamLock(true);
         $io->streamWrite('<?xml version="1.0" encoding="UTF-8"?>' . "\n");
-        $io->streamWrite('<ArrayOfProduct xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' . "\n");
+        $io->streamWrite('<Products xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' . "\n");
         $start_memory = memory_get_usage();
 
         /**
@@ -530,11 +532,11 @@ class Tritac_ChannelEngine_Model_Observer
             );
         }
 
-        $io->streamWrite('</ArrayOfProduct>');
+        $io->streamWrite('</Products>');
         $io->streamUnlock();
         $io->streamClose();
 
-        Mage::log("Products feed is generated successfully");
+        Mage::log("Product feed was generated successfully");
     }
 
     public function callbackGenerateFeed($args)
