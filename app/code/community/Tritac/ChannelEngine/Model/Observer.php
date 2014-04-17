@@ -515,11 +515,13 @@ class Tritac_ChannelEngine_Model_Observer
             /**
              * Retrieve product collection
              */
-            $collection = Mage::getModel('catalog/product')->getCollection();
-            $collection->addAttributeToSelect(array('name', 'description', 'image', 'url_key', 'price', 'visibility', 'msrp'), 'left');
-            $collection->addFieldToFilter('type_id', 'simple');
-            $collection->addStoreFilter($_store);
-            $collection->addAttributeToSort('entity_id', 'DESC');
+            $collection = Mage::getModel('catalog/product')->getCollection()
+                ->addAttributeToSelect(array('name', 'description', 'image', 'url_key', 'price', 'cost', 'visibility', 'msrp'), 'left')
+                ->addFieldToFilter('type_id', 'simple')
+                ->addStoreFilter($_store)
+                ->addAttributeToFilter('status', 1)
+                ->addAttributeToSort('entity_id', 'DESC');
+
             // Add qty and category fields to select
             $collection->getSelect()
                 ->joinLeft(
@@ -562,7 +564,7 @@ class Tritac_ChannelEngine_Model_Observer
         $product    = $args['row'];
         $categories = $args['categories'];
         $options    = $args['options'];
-        $_store      = $args['store'];
+        $_store     = $args['store'];
 
         $xml = '';
 
@@ -609,20 +611,19 @@ class Tritac_ChannelEngine_Model_Observer
         $xml .= "<Description><![CDATA[".$product['description']."]]></Description>";
         $xml .= "<Price><![CDATA[".$product['price']."]]></Price>";
         $xml .= "<ListPrice><![CDATA[".$product['msrp']."]]></ListPrice>";
+        $xml .= "<PurchasePrice><![CDATA[".$product['cost']."]]></PurchasePrice>";
 
         // Retrieve product stock qty
         $xml .= "<Stock><![CDATA[".$product['qty']."]]></Stock>";
         $xml .= "<SKU><![CDATA[".$product['sku']."]]></SKU>";
 
         // VAT and Shipping Time are pre configured in extension settings
-        if(!empty($this->_config['feed']['vat_rate'])) {
-            $vat = $this->_config['feed']['vat_rate'];
+        if(!empty($this->_config[$product['store_id']]['feed']['vat_rate'])) {
+            $vat = $this->_config[$product['store_id']]['feed']['vat_rate'];
             $xml .= "<VAT><![CDATA[".$vat."]]></VAT>";
-            $purchasePrice = $product['price'] * (1 - $vat / 100);
-            $xml .= "<PurchasePrice><![CDATA[".$purchasePrice."]]></PurchasePrice>";
         }
 
-        $shippingTime = ($product['qty'] > 0) ? $this->_config['feed']['shipping_time'] : $this->_config['feed']['shipping_time_oos'];
+        $shippingTime = ($product['qty'] > 0) ? $this->_config[$product['store_id']]['feed']['shipping_time'] : $this->_config[$product['store_id']]['feed']['shipping_time_oos'];
 
         if($shippingTime) {
             $xml .= "<ShippingTime><![CDATA[".$shippingTime."]]></ShippingTime>";
