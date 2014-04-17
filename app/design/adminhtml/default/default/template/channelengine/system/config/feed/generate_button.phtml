@@ -1,0 +1,37 @@
+<?php
+/**
+ * @see Tritac_ChannelEngine_Block_Adminhtml_System_Config_Feed
+ */
+?>
+<script type="text/javascript">
+    //<![CDATA[
+    function generateFeed() {
+        var elem = $('<?php echo $this->getHtmlId() ?>');
+
+        new Ajax.Request('<?php echo $this->getAjaxUrl() ?>', {
+            onSuccess: function(response) {
+                result = "<?php echo $this->__("Couldn't generate feed. See magento log.") ?>";
+                try {
+                    response = response.responseText;
+                    if (response == 1) {
+                        result = '<?php echo $this->__("Product Feed was generated successfully") ?>';
+                        elem.removeClassName('fail').addClassName('success')
+                    } else {
+                        elem.removeClassName('success').addClassName('fail')
+                    }
+                } catch (e) {
+                    elem.removeClassName('success').addClassName('fail')
+                }
+                $('generate_result').update(result);
+            },
+            onFailure: function(response) {
+                result = "<?php echo $this->__("Couldn't generate feed. See magento log.") ?>";
+                elem.removeClassName('success').addClassName('fail');
+            }
+        });
+    }
+    //]]>
+</script>
+<button onclick="javascript:generateFeed(); return false;" class="scalable" type="button" id="<?php echo $this->getHtmlId() ?>">
+    <span id="generate_result"><?php echo $this->escapeHtml($this->getButtonLabel()) ?></span>
+</button>
