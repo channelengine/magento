@@ -513,10 +513,31 @@ class Tritac_ChannelEngine_Model_Observer
             }
 
             /**
-             * Retrieve product collection
+             * Retrieve product collection with all visible attributes
              */
+            $attributesToSelect = array('name', 'description', 'image', 'url_key', 'price', 'cost', 'visibility', 'msrp');
+            $visibleAttributes = array();
+            $attributes = Mage::getSingleton('eav/config')
+                ->getEntityType(Mage_Catalog_Model_Product::ENTITY)->getAttributeCollection();
+
+            foreach($attributes as $attribute) {
+                if( $attribute->getIsVisible() && $attribute->getIsVisibleOnFront() ) {
+                    $code = $attribute->getAttributeCode();
+                    $visibleAttributes[$code]['label'] = $attribute->getFrontendLabel();
+
+                    foreach( $attribute->getSource()->getAllOptions(false) as $option ) {
+                        $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
+                    }
+                    $attributesToSelect[] = $code;
+                }
+            }
+
+            if(!empty($this->_config[$storeId]['feed']['gtin'])) {
+                $attributesToSelect[] = $this->_config[$storeId]['feed']['gtin'];
+            }
+
             $collection = Mage::getModel('catalog/product')->getCollection()
-                ->addAttributeToSelect(array('name', 'description', 'image', 'url_key', 'price', 'cost', 'visibility', 'msrp'), 'left')
+                ->addAttributeToSelect($attributesToSelect, 'left')
                 ->addFieldToFilter('type_id', 'simple')
                 ->addStoreFilter($_store)
                 ->addAttributeToFilter('status', 1)
@@ -542,6 +563,7 @@ class Tritac_ChannelEngine_Model_Observer
                 array(
                     'io'            => $io,
                     'categories'    => $categoryArray,
+                    'attributes'    => $visibleAttributes,
                     'options'       => $optionsArray,
                     'store'         => $_store,
                     'startMemory'   => $start_memory,
@@ -562,13 +584,19 @@ class Tritac_ChannelEngine_Model_Observer
     {
         $io         = $args['io'];
         $product    = $args['row'];
+        $attributes = $args['attributes'];
         $categories = $args['categories'];
         $options    = $args['options'];
         $_store     = $args['store'];
+        $storeId    = $_store->getId();
 
         $xml = '';
 
-        $product['store_id'] = $_store->getId();
+        $product['store_id'] = $storeId;
+        if(!empty($this->_config[$storeId]['feed']['gtin'])) {
+            $product['gtin'] = $product[$this->_config[$storeId]['feed']['gtin']];
+        }
+
         /**
          * Add product custom options to feed.
          * Each option value will generate new product row
@@ -592,7 +620,7 @@ class Tritac_ChannelEngine_Model_Observer
             }
         }else {
             $product['id'] = $product['entity_id'];
-            $xml .= $this->_getProductXml($product, $categories);
+            $xml .= $this->_getProductXml($product, $categories, array('attributes' => $attributes));
         }
 
         $io->streamWrite($xml);
@@ -613,9 +641,13 @@ class Tritac_ChannelEngine_Model_Observer
         $xml .= "<ListPrice><![CDATA[".$product['msrp']."]]></ListPrice>";
         $xml .= "<PurchasePrice><![CDATA[".$product['cost']."]]></PurchasePrice>";
 
-        // Retrieve product stock qty
+        // Add product stock qty
         $xml .= "<Stock><![CDATA[".$product['qty']."]]></Stock>";
+        // Add product SKU and GTIN
         $xml .= "<SKU><![CDATA[".$product['sku']."]]></SKU>";
+        if(!empty($product['gtin'])) {
+            $xml .= "<GTIN><![CDATA[".$product['gtin']."]]></GTIN>";
+        }
 
         // VAT and Shipping Time are pre configured in extension settings
         if(!empty($this->_config[$product['store_id']]['feed']['vat_rate'])) {
@@ -633,7 +665,7 @@ class Tritac_ChannelEngine_Model_Observer
         $productModel = Mage::getModel('catalog/product');
         $productModel->setData('entity_id', $product['entity_id']);
         $productModel->setData('url_key', $product['url_key']);
-        $productModel->setData('store_id', Mage::app()->getWebsite(true)->getDefaultStore()->getId());
+        $productModel->setData('store_id', $product['store_id']);
         $url = $productModel->getProductUrl();
         $xml .= "<Url><![CDATA[".$url."]]></Url>";
 
@@ -664,6 +696,26 @@ class Tritac_ChannelEngine_Model_Observer
                 $title,
                 $additional['value']
             );
+        }
+
+        /*
+         * Prepare product visible attributes
+         */
+        if(isset($additional['attributes'])) {
+            $xml .= '<Attributes>';
+            foreach($additional['attributes'] as $code => $attribute) {
+                if(isset($product[$code])) {
+                    $xml .= "<".$code.">";
+                    $xml .= "<label><![CDATA[".$attribute['label']."]]></label>";
+                    if(!empty($attribute['values'])) {
+                        $xml .= "<value><![CDATA[".$attribute['values'][$product[$code]]."]]></value>";
+                    } else {
+                        $xml .= "<value><![CDATA[".$product[$code]."]]></value>";
+                    }
+                    $xml .= "</".$code.">";
+                }
+            }
+            $xml .= '</Attributes>';
         }
 
         $xml .= "</Product>\n";
