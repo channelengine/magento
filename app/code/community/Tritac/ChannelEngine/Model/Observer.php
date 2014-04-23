@@ -601,6 +601,7 @@ class Tritac_ChannelEngine_Model_Observer
          * Add product custom options to feed.
          * Each option value will generate new product row
          */
+        $additional['attributes'] = $attributes;
         if(isset($options[$product['entity_id']])) {
             $product['group_code'] = $product['entity_id'];
             foreach($options[$product['entity_id']] as $option) {
@@ -620,7 +621,7 @@ class Tritac_ChannelEngine_Model_Observer
             }
         }else {
             $product['id'] = $product['entity_id'];
-            $xml .= $this->_getProductXml($product, $categories, array('attributes' => $attributes));
+            $xml .= $this->_getProductXml($product, $categories, $additional);
         }
 
         $io->streamWrite($xml);
