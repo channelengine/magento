@@ -723,4 +723,50 @@ class Tritac_ChannelEngine_Model_Observer
 
         return $xml;
     }
+
+    /**
+     * Join channelengine order fields to adminhtml order grid
+     *
+     * @param $observer
+     */
+    public function prepareOrderGridCollection($observer)
+    {
+        $collection = $observer->getOrderGridCollection();
+        $joinTableName = Mage::getSingleton('core/resource')->getTableName('channelengine/order');
+        $collection->getSelect()->joinLeft(
+            array('channel_order_table' => $joinTableName),
+            'channel_order_table.order_id=main_table.entity_id',
+            array('channel_name', 'channel_order_id')
+        );
+    }
+
+    /**
+     * Add channelengine order fields to adminhtml order grid
+     *
+     * @param $observer
+     * @return $this
+     */
+    public function appendCustomColumnToOrderGrid($observer)
+    {
+        $block = $observer->getBlock();
+        if (!isset($block)) {
+            return $this;
+        }
+
+        if ($block->getType() == 'adminhtml/sales_order_grid') {
+            $block->addColumnAfter('channel_order_id', array(
+                'header'=> Mage::helper('sales')->__('ChannelEngine Order ID'),
+                'width' => '80px',
+                'type'  => 'text',
+                'index' => 'channel_order_id',
+            ), 'real_order_id');
+
+            $block->addColumnAfter('channel_name', array(
+                'header'=> Mage::helper('sales')->__('Channel Name'),
+                'width' => '80px',
+                'type'  => 'text',
+                'index' => 'channel_name',
+            ), 'real_order_id');
+        }
+    }
 }
