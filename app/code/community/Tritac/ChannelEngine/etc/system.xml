@@ -106,7 +106,7 @@
                             <label>Shipping Time (Out Of Stock products)</label>
                             <frontend_type>text</frontend_type>
                             <comment>
-                                <![CDATA[<span class="notice">For example: "Ordered before 9:00PM, Delivered tomorrow"</span>]]>
+                                <![CDATA[<span class="notice">For example: "Delivered within 5 working days"</span>]]>
                             </comment>
                             <sort_order>3</sort_order>
                             <show_in_default>1</show_in_default>
@@ -118,7 +118,7 @@
                             <frontend_type>select</frontend_type>
                             <source_model>channelengine/system_config_source_gtin</source_model>
                             <comment>
-                                <![CDATA[<span class="notice">You need to create necessary product attribute first which will be used as product GTIN</span>]]>
+                                <![CDATA[<span class="notice">The attribute that contains the product GTIN (i.e. EAN, ISBN, UPC)</span>]]>
                             </comment>
                             <sort_order>4</sort_order>
                             <show_in_default>1</show_in_default>

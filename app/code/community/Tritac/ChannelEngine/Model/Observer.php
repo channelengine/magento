@@ -707,11 +707,16 @@ class Tritac_ChannelEngine_Model_Observer
             foreach($additional['attributes'] as $code => $attribute) {
                 if(isset($product[$code])) {
                     $xml .= "<".$code.">";
-                    $xml .= "<label><![CDATA[".$attribute['label']."]]></label>";
+                    /*$xml .= "<label><![CDATA[".$attribute['label']."]]></label>";
                     if(!empty($attribute['values'])) {
                         $xml .= "<value><![CDATA[".$attribute['values'][$product[$code]]."]]></value>";
                     } else {
                         $xml .= "<value><![CDATA[".$product[$code]."]]></value>";
+                    }*/
+                    if(!empty($attribute['values'])) {
+                        $xml .= "<![CDATA[".$attribute['values'][$product[$code]]."]]>";
+                    } else {
+                        $xml .= "<![CDATA[".$product[$code]."]]>";
                     }
                     $xml .= "</".$code.">";
                 }
