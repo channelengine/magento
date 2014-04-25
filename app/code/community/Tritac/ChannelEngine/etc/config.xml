@@ -119,6 +119,24 @@
                     </shipmentsave>
                 </observers>
             </sales_order_shipment_save_after>
+            <core_block_abstract_prepare_layout_before>
+                <observers>
+                    <ordergrid_column_append>
+                        <type>singleton</type>
+                        <class>channelengine/observer</class>
+                        <method>appendCustomColumnToOrderGrid</method>
+                    </ordergrid_column_append>
+                </observers>
+            </core_block_abstract_prepare_layout_before>
+            <sales_order_grid_collection_load_before>
+                <observers>
+                    <prepare_order_grid_collection>
+                        <type>singleton</type>
+                        <class>channelengine/observer</class>
+                        <method>prepareOrderGridCollection</method>
+                    </prepare_order_grid_collection>
+                </observers>
+            </sales_order_grid_collection_load_before>
         </events>
     </adminhtml>
 
