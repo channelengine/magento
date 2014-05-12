@@ -16,6 +16,9 @@
                     if (response == 1) {
                         result = '<?php echo $this->__("Product Feed was generated successfully") ?>';
                         elem.removeClassName('fail').addClassName('success')
+                    } else if(response == 'redirect') {
+                        result = "<?php echo $this->__("Too many visible attributes.") ?>";
+                        window.location.reload();
                     } else {
                         elem.removeClassName('success').addClassName('fail')
                     }

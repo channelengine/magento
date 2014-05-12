@@ -26,6 +26,8 @@ class Tritac_ChannelEngine_Model_Observer
      */
     protected $_helper = null;
 
+    const ATTRIBUTES_LIMIT = 30;
+
     /**
      * Retrieve and validate API config
      * Initialize API client
@@ -478,7 +480,7 @@ class Tritac_ChannelEngine_Model_Observer
          * Note: products with undefined website id will not be export.
          */
         foreach(Mage::app()->getStores() as $_store) {
-
+            Mage::app()->setCurrentStore($_store);
             $path = Mage::getBaseDir('media') . DS . 'channelengine' . DS;
             $storeConfig = $this->_helper->getConfig($_store->getId());
             $name = $storeConfig['general']['tenant'].'_products.xml';
@@ -515,6 +517,16 @@ class Tritac_ChannelEngine_Model_Observer
             /**
              * Retrieve product collection with all visible attributes
              */
+            if(Mage::helper('catalog/product_flat')->isEnabled($storeId)) {
+                Mage::getResourceSingleton('catalog/product_flat')->setStoreId($storeId);
+            }
+            $collection = Mage::getModel('catalog/product')->getCollection();
+
+            if(Mage::helper('catalog/product_flat')->isEnabled($storeId)) {
+                $collection->getEntity()->setStoreId($storeId);
+            }
+
+
             $attributesToSelect = array('name', 'description', 'image', 'url_key', 'price', 'cost', 'visibility', 'msrp');
             $visibleAttributes = array();
             $attributes = Mage::getSingleton('eav/config')
@@ -528,7 +540,9 @@ class Tritac_ChannelEngine_Model_Observer
                     foreach( $attribute->getSource()->getAllOptions(false) as $option ) {
                         $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
                     }
-                    $attributesToSelect[] = $code;
+                    if(!in_array($code, $attributesToSelect)) {
+                        $attributesToSelect[] = $code;
+                    }
                 }
             }
 
@@ -536,8 +550,14 @@ class Tritac_ChannelEngine_Model_Observer
                 $attributesToSelect[] = $this->_config[$storeId]['feed']['gtin'];
             }
 
-            $collection = Mage::getModel('catalog/product')->getCollection()
-                ->addAttributeToSelect($attributesToSelect, 'left')
+            if( (count($attributesToSelect) > self::ATTRIBUTES_LIMIT) && !$collection->isEnabledFlat()) {
+                $error = $this->_helper->__('Too many visible attributes. Please enable catalog product flat mode.');
+                Mage::getSingleton('adminhtml/session')->addError($error);
+                echo 'redirect';
+                return false;
+            }
+
+            $collection->addAttributeToSelect($attributesToSelect, 'left')
                 ->addFieldToFilter('type_id', 'simple')
                 ->addStoreFilter($_store)
                 ->addAttributeToFilter('status', 1)
@@ -557,6 +577,7 @@ class Tritac_ChannelEngine_Model_Observer
                 )
                 ->group('e.entity_id');
 
+            //die();
             Mage::getSingleton('core/resource_iterator')->walk(
                 $collection->getSelect(),
                 array(array($this, 'callbackGenerateFeed')),
