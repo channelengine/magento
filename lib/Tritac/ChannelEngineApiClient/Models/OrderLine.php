@@ -5,7 +5,7 @@ class Tritac_ChannelEngineApiClient_Models_OrderLine extends Tritac_ChannelEngin
     public static $typeMap = array(
     );
 
-    protected $checkoutProductNo;
+		protected $channelProductNo;
     protected $merchantProductNo;
     protected $productEan;
     protected $productName;
@@ -34,8 +34,8 @@ class Tritac_ChannelEngineApiClient_Models_OrderLine extends Tritac_ChannelEngin
         self::$typeMap = array_merge(parent::$typeMap, self::$typeMap);
     }
 
-    function setChannelProductNo($checkoutProductNo) { $this->checkoutProductNo = $checkoutProductNo; }
-    function getChannelProductNo() { return $this->checkoutProductNo; }
+		function setChannelProductNo($channelProductNo) { $this->channelProductNo = $channelProductNo; }
+		function getChannelProductNo() { return $this->channelProductNo; }
 
     function setMerchantProductNo($merchantProductNo) { $this->merchantProductNo = $merchantProductNo; }
     function getMerchantProductNo() { return $this->merchantProductNo; }
