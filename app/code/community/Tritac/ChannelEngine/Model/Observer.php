@@ -526,14 +526,15 @@ class Tritac_ChannelEngine_Model_Observer
                 $collection->getEntity()->setStoreId($storeId);
             }
 
-
-            $attributesToSelect = array('name', 'description', 'image', 'url_key', 'price', 'cost', 'visibility', 'msrp');
+            $systemAttributes = $attributesToSelect =  array('name', 'description', 'small_image', 'url_key', 'price', 'cost', 'visibility', 'msrp');
             $visibleAttributes = array();
             $attributes = Mage::getSingleton('eav/config')
                 ->getEntityType(Mage_Catalog_Model_Product::ENTITY)->getAttributeCollection();
 
             foreach($attributes as $attribute) {
-                if( $attribute->getIsVisible() && $attribute->getIsVisibleOnFront() ) {
+                if( ($attribute->getIsVisible() && $attribute->getIsVisibleOnFront())
+                    || in_array($attribute->getAttributeCode(), $systemAttributes))
+                {
                     $code = $attribute->getAttributeCode();
                     $visibleAttributes[$code]['label'] = $attribute->getFrontendLabel();
 
@@ -585,6 +586,7 @@ class Tritac_ChannelEngine_Model_Observer
                     'io'            => $io,
                     'categories'    => $categoryArray,
                     'attributes'    => $visibleAttributes,
+                    'systemAttributes' => $systemAttributes,
                     'options'       => $optionsArray,
                     'store'         => $_store,
                     'startMemory'   => $start_memory,
@@ -606,6 +608,7 @@ class Tritac_ChannelEngine_Model_Observer
         $io         = $args['io'];
         $product    = $args['row'];
         $attributes = $args['attributes'];
+        $systemAttributes = $args['systemAttributes'];
         $categories = $args['categories'];
         $options    = $args['options'];
         $_store     = $args['store'];
@@ -622,6 +625,7 @@ class Tritac_ChannelEngine_Model_Observer
          * Add product custom options to feed.
          * Each option value will generate new product row
          */
+        $additional['systemAttributes'] = $systemAttributes;
         $additional['attributes'] = $attributes;
         if(isset($options[$product['entity_id']])) {
             $product['group_code'] = $product['entity_id'];
@@ -691,8 +695,8 @@ class Tritac_ChannelEngine_Model_Observer
         $url = $productModel->getProductUrl();
         $xml .= "<Url><![CDATA[".$url."]]></Url>";
 
-        if(isset($product['image']) && $product['image'] != 'no_selection') {
-            $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['image']);
+        if(isset($product['small_image']) && $product['small_image'] != 'no_selection') {
+            $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['small_image']);
             $xml .= "<ImageUrl><![CDATA[".$imgUrl."]]></ImageUrl>";
         }
 
@@ -726,7 +730,7 @@ class Tritac_ChannelEngine_Model_Observer
         if(isset($additional['attributes'])) {
             $xml .= '<Attributes>';
             foreach($additional['attributes'] as $code => $attribute) {
-                if(isset($product[$code])) {
+                if(isset($product[$code]) && !in_array($code, $additional['systemAttributes'])) {
                     $xml .= "<".$code.">";
                     /*$xml .= "<label><![CDATA[".$attribute['label']."]]></label>";
                     if(!empty($attribute['values'])) {
