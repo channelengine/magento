@@ -6,7 +6,7 @@ class Tritac_ChannelEngineApiClient_Models_Cancellation extends Tritac_ChannelEn
     );
 
     protected $orderId;
-    protected $checkoutOrderNo;
+		protected $channelOrderNo;
     protected $lines;
     protected $cancellationStatus;
     protected $refundInclVat;
@@ -22,8 +22,8 @@ class Tritac_ChannelEngineApiClient_Models_Cancellation extends Tritac_ChannelEn
     function setOrderId($orderId) { $this->orderId = $orderId; }
     function getOrderId() { return $this->orderId; }
 
-    function setChannelOrderNo($checkoutOrderNo) { $this->checkoutOrderNo = $checkoutOrderNo; }
-    function getChannelOrderNo() { return $this->checkoutOrderNo; }
+		function setChannelOrderNo($channelOrderNo) { $this->channelOrderNo = $channelOrderNo; }
+		function getChannelOrderNo() { return $this->channelOrderNo; }
 
     function setLines($lines) { $this->lines = $lines; }
     function getLines() { return $this->lines; }

@@ -12,6 +12,7 @@ class Tritac_ChannelEngineApiClient_Client {
 
     const FIDDLER_PROXY 	= '127.0.0.1:8888';
     const USE_FIDDLER 		= false;
+    const FIDDLER_CERTIFICATE_PATH = 'fiddler.crt';
 
     const ENV_DEVELOPMENT	= 'dev';
     const ENV_ACCEPTATION	= 'acc';
@@ -48,7 +49,7 @@ class Tritac_ChannelEngineApiClient_Client {
         $this->tenant = $tenant;
         $this->apiKey = $apiKey;
         $this->apiSecret = $apiSecret;
-        $this->certificate = __DIR__ . DIRECTORY_SEPARATOR . self::CERTIFICATE_PATH;
+        $this->certificate = __DIR__ . DIRECTORY_SEPARATOR . (self::USE_FIDDLER ? self::FIDDLER_CERTIFICATE_PATH : self::CERTIFICATE_PATH);
     }
 
     /* Public API methods */

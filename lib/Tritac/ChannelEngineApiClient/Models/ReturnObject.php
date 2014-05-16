@@ -9,8 +9,8 @@ class Tritac_ChannelEngineApiClient_Models_ReturnObject extends Tritac_ChannelEn
     protected $orderId;
     protected $shipmentId;
     protected $merchantReturnNo;
-    protected $createdDate;
-    protected $updatedDate;
+    protected $createdAt;
+    protected $updatedAt;
     protected $status;
     protected $reason;
     protected $comment;
@@ -35,11 +35,11 @@ class Tritac_ChannelEngineApiClient_Models_ReturnObject extends Tritac_ChannelEn
     function setMerchantReturnNo($merchantReturnNo) { $this->merchantReturnNo = $merchantReturnNo; }
     function getMerchantReturnNo() { return $this->merchantReturnNo; }
 
-    function setCreatedDate( $createdDate) { $this->createdDate = $createdDate; }
-    function getCreatedDate() { return $this->createdDate; }
+    function setCreatedAt( $createdAt) { $this->createdAt = $createdAt; }
+    function getCreatedAt() { return $this->createdAt; }
 
-    function setUpdatedDate( $updatedDate) { $this->updatedDate = $updatedDate; }
-    function getUpdatedDate() { return $this->updatedDate; }
+    function setUpdatedAt( $updatedAt) { $this->updatedAt = $updatedAt; }
+    function getUpdatedAt() { return $this->updatedAt; }
 
     function setStatus($status) { $this->status = $status; }
     function getStatus() { return $this->status; }

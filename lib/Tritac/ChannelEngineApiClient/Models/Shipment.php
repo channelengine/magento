@@ -7,8 +7,8 @@ class Tritac_ChannelEngineApiClient_Models_Shipment extends Tritac_ChannelEngine
     );
 
     protected $orderId;
-    protected $createdDate;
-    protected $updatedDate;
+    protected $createdAt;
+    protected $updatedAt;
     protected $trackTraceNo;
     protected $trackTraceUrl;
     protected $method;
