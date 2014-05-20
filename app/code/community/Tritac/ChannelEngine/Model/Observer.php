@@ -526,7 +526,7 @@ class Tritac_ChannelEngine_Model_Observer
                 $collection->getEntity()->setStoreId($storeId);
             }
 
-            $systemAttributes = $attributesToSelect =  array('name', 'description', 'small_image', 'url_key', 'price', 'cost', 'visibility', 'msrp');
+            $systemAttributes = $attributesToSelect =  array('name', 'description', 'image', 'url_key', 'price', 'cost', 'visibility', 'msrp');
             $visibleAttributes = array();
             $attributes = Mage::getSingleton('eav/config')
                 ->getEntityType(Mage_Catalog_Model_Product::ENTITY)->getAttributeCollection();
@@ -607,6 +607,7 @@ class Tritac_ChannelEngine_Model_Observer
     {
         $io         = $args['io'];
         $product    = $args['row'];
+        var_export($product);
         $attributes = $args['attributes'];
         $systemAttributes = $args['systemAttributes'];
         $categories = $args['categories'];
@@ -695,8 +696,8 @@ class Tritac_ChannelEngine_Model_Observer
         $url = $productModel->getProductUrl();
         $xml .= "<Url><![CDATA[".$url."]]></Url>";
 
-        if(isset($product['small_image']) && $product['small_image'] != 'no_selection') {
-            $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['small_image']);
+        if(isset($product['image']) && $product['image'] != 'no_selection') {
+            $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['image']);
             $xml .= "<ImageUrl><![CDATA[".$imgUrl."]]></ImageUrl>";
         }
 
