@@ -50,11 +50,6 @@ class Tritac_ChannelEngine_Model_Observer
         }
     }
 
-    public function getClients() {
-        var_export($this->_client);
-        die();
-    }
-
     /**
      * Fetch new orders from ChannelEngine.
      * Uses for cronjob. Cronjob is set in extension config file.
@@ -607,7 +602,6 @@ class Tritac_ChannelEngine_Model_Observer
     {
         $io         = $args['io'];
         $product    = $args['row'];
-        var_export($product);
         $attributes = $args['attributes'];
         $systemAttributes = $args['systemAttributes'];
         $categories = $args['categories'];
