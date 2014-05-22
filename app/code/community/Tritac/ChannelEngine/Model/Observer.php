@@ -557,6 +557,7 @@ class Tritac_ChannelEngine_Model_Observer
                 ->addFieldToFilter('type_id', 'simple')
                 ->addStoreFilter($_store)
                 ->addAttributeToFilter('status', 1)
+                ->addAttributeToFilter('visibility', array('in' => array('2', '3', '4')))
                 ->addAttributeToSort('entity_id', 'DESC');
 
             // Add qty and category fields to select
@@ -573,7 +574,6 @@ class Tritac_ChannelEngine_Model_Observer
                 )
                 ->group('e.entity_id');
 
-            //die();
             Mage::getSingleton('core/resource_iterator')->walk(
                 $collection->getSelect(),
                 array(array($this, 'callbackGenerateFeed')),
