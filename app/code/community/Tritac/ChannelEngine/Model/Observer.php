@@ -471,6 +471,17 @@ class Tritac_ChannelEngine_Model_Observer
         }
 
         /**
+         * Prepare products relation
+         */
+//        $productsRelation = array();
+//        $_resource = Mage::getSingleton('core/resource');
+//        $_connection = $_resource->getConnection('core_read');
+//        $relations = $_connection->fetchAll("SELECT * FROM " . $_resource->getTableName('catalog/product_relation'));
+//        foreach($relations as $relation) {
+//            $productsRelation[$relation['child_id']] = $relation['parent_id'];
+//        }
+
+        /**
          * Export products from each store.
          * Note: products with undefined website id will not be export.
          */
@@ -521,7 +532,20 @@ class Tritac_ChannelEngine_Model_Observer
                 $collection->getEntity()->setStoreId($storeId);
             }
 
-            $systemAttributes = $attributesToSelect =  array('name', 'description', 'image', 'url_key', 'price', 'cost', 'visibility', 'msrp');
+            $systemAttributes = $attributesToSelect =  array(
+                'name',
+                'description',
+                'image',
+                'url_key',
+                'price',
+                'cost',
+                'special_price',
+                'special_from_date',
+                'special_to_date',
+                'visibility',
+                'msrp'
+            );
+
             $visibleAttributes = array();
             $attributes = Mage::getSingleton('eav/config')
                 ->getEntityType(Mage_Catalog_Model_Product::ENTITY)->getAttributeCollection();
@@ -554,7 +578,7 @@ class Tritac_ChannelEngine_Model_Observer
             }
 
             $collection->addAttributeToSelect($attributesToSelect, 'left')
-                ->addFieldToFilter('type_id', 'simple')
+                ->addFieldToFilter('type_id', array('in' => array('simple')))
                 ->addStoreFilter($_store)
                 ->addAttributeToFilter('status', 1)
                 ->addAttributeToFilter('visibility', array('in' => array('2', '3', '4')))
@@ -588,6 +612,70 @@ class Tritac_ChannelEngine_Model_Observer
                 )
             );
 
+            $collection->clear()->getSelect()->reset('where');
+            $collection->addFieldToFilter('type_id', array('in' => array('configurable')))
+                ->addStoreFilter($_store)
+                ->addAttributeToFilter('status', 1)
+                ->addAttributeToSort('entity_id', 'DESC');
+
+            foreach($collection as $_product) {
+                $productAttributeOptions = $_product->getTypeInstance(true)->getConfigurableAttributesAsArray($_product);
+                $superAttributes = array();
+
+                foreach($productAttributeOptions as $superAttribute) {
+                    foreach($superAttribute['values'] as $value) {
+                        $superAttributes[$superAttribute['attribute_code']][$value['value_index']] = $value;
+                    }
+                }
+
+                $parentData = $_product->getData();
+                $parentData['id'] = $parentData['entity_id'];
+
+                $productModel = Mage::getModel('catalog/product');
+                $productModel->setData('entity_id', $parentData['entity_id']);
+                $productModel->setData('url_key', $parentData['url_key']);
+                $productModel->setData('store_id', $parentData['store_id']);
+                $parentData['url'] = $productModel->getProductUrl();
+
+                $specialPrice = $parentData['special_price'];
+                $specialFrom = $parentData['special_from_date'];
+                $specialTo = $parentData['special_to_date'];
+                $parentData['price'] = Mage::getModel('catalog/product_type_price')
+                    ->calculateSpecialPrice($parentData['price'], $specialPrice, $specialFrom, $specialTo, $storeId);
+
+                $xml = $this->_getProductXml($parentData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
+                $_childProducts = Mage::getModel('catalog/product_type_configurable')
+                    ->getUsedProducts(null, $_product);
+
+                foreach($_childProducts as $_child) {
+                    $childData = $_child->getData();
+                    $childData['id'] = $childData['entity_id'];
+                    $childData['parent_id'] = $parentData['id'];
+                    $childData['price'] = $parentData['price'];
+                    $childData['url'] = $parentData['url'];
+                    $childData['description'] = $parentData['description'];
+
+                    if(!isset($childData['image']) || $childData['image'] == 'no_slection') {
+                        $childData['image'] = $parentData['image'];
+                    }
+
+                    foreach($superAttributes as $code => $superAttribute) {
+                        if(isset($childData[$code])) {
+                            $priceValue = $superAttribute[$childData[$code]]['pricing_value'];
+                            if($superAttribute[$childData[$code]]['is_percent']) {
+                                $newPrice = $childData['price'] + $childData['price'] * $priceValue / 100;
+                            } else {
+                                $newPrice = $childData['price'] + $priceValue;
+                            }
+                            $childData['price'] = $newPrice;
+                        }
+                    }
+                    $xml .= $this->_getProductXml($childData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
+                }
+                $io->streamWrite($xml);
+            }
+
+
             $io->streamWrite('</Products>');
             $io->streamUnlock();
             $io->streamClose();
@@ -615,6 +703,18 @@ class Tritac_ChannelEngine_Model_Observer
         if(!empty($this->_config[$storeId]['feed']['gtin'])) {
             $product['gtin'] = $product[$this->_config[$storeId]['feed']['gtin']];
         }
+
+        $specialPrice = $product['special_price'];
+        $specialFrom = $product['special_from_date'];
+        $specialTo = $product['special_to_date'];
+        $product['price'] = Mage::getModel('catalog/product_type_price')
+            ->calculateSpecialPrice($product['price'], $specialPrice, $specialFrom, $specialTo, $storeId);
+
+        $productModel = Mage::getModel('catalog/product');
+        $productModel->setData('entity_id', $product['entity_id']);
+        $productModel->setData('url_key', $product['url_key']);
+        $productModel->setData('store_id', $product['store_id']);
+        $product['url'] = $productModel->getProductUrl();
 
         /**
          * Add product custom options to feed.
@@ -656,6 +756,10 @@ class Tritac_ChannelEngine_Model_Observer
         if(isset($product['group_code'])) {
             $xml .= "<GroupCode><![CDATA[".$product['group_code']."]]></GroupCode>";
         }
+        if(isset($product['parent_id'])) {
+            $xml .= "<ParentId><![CDATA[".$product['parent_id']."]]></ParentId>";
+        }
+        $xml .= "<Type><![CDATA[".$product['type_id']."]]></Type>";
         $xml .= "<Name><![CDATA[".$product['name']."]]></Name>";
         $xml .= "<Description><![CDATA[".$product['description']."]]></Description>";
         $xml .= "<Price><![CDATA[".$product['price']."]]></Price>";
@@ -682,13 +786,7 @@ class Tritac_ChannelEngine_Model_Observer
             $xml .= "<ShippingTime><![CDATA[".$shippingTime."]]></ShippingTime>";
         }
 
-        // Retrieve product url
-        $productModel = Mage::getModel('catalog/product');
-        $productModel->setData('entity_id', $product['entity_id']);
-        $productModel->setData('url_key', $product['url_key']);
-        $productModel->setData('store_id', $product['store_id']);
-        $url = $productModel->getProductUrl();
-        $xml .= "<Url><![CDATA[".$url."]]></Url>";
+        $xml .= "<Url><![CDATA[".$product['url']."]]></Url>";
 
         if(isset($product['image']) && $product['image'] != 'no_selection') {
             $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['image']);
@@ -747,6 +845,11 @@ class Tritac_ChannelEngine_Model_Observer
         $xml .= "</Product>\n";
 
         return $xml;
+    }
+
+    public function addConfigurableProducts($collection)
+    {
+
     }
 
     /**
