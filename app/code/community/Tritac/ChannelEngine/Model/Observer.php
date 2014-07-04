@@ -159,7 +159,7 @@ class Tritac_ChannelEngine_Model_Observer
                 );
 
                 // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
-                if($order->getShippingCostsInclVat() && floatval($order->getShippingCostsInclVat()) >= 0) {
+                if(floatval($order->getShippingCostsInclVat()) >= 0) {
                     Mage::register('channelengine_shipping_amount', floatval($order->getShippingCostsInclVat()));
                 }
 
