@@ -78,6 +78,8 @@ class Tritac_ChannelEngine_Model_Observer
             if(is_null($orders) || $orders->count() == 0)
                 continue;
 
+            Mage::log("Received {$orders->count()} orders from ChannelEngine.");
+
             foreach($orders as $order) {
 
                 $billingAddress = $order->getBillingAddress();
@@ -159,9 +161,10 @@ class Tritac_ChannelEngine_Model_Observer
                 );
 
                 // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
-                if(floatval($order->getShippingCostsInclVat()) >= 0) {
-                    Mage::register('channelengine_shipping_amount', floatval($order->getShippingCostsInclVat()));
-                }
+                Mage::register('channelengine_shipping_amount', floatval($order->getShippingCostsInclVat()));
+                // Set this value to make sure ChannelEngine requested the rates and not the frontend
+                // because the shipping method has a fallback on 0,- and this will make it show up on the frontend
+                Mage::register('channelengine_shipping', true); 
 
                 $quote->getBillingAddress()
                     ->addData($billingData);
@@ -267,13 +270,14 @@ class Tritac_ChannelEngine_Model_Observer
      * @return bool
      * @throws Exception
      */
-    public function saveShipment(Varien_Event_Observer $observer)
+    public function salesOrderShipmentTrackSaveAfter(Varien_Event_Observer $observer)
     {
         $event = $observer->getEvent();
         /** @var $_shipment Mage_Sales_Model_Order_Shipment */
         $_shipment = $event->getShipment();
         /** @var $_order Mage_Sales_Model_Order */
         $_order = $_shipment->getOrder();
+        
         $storeId = $_order->getStoreId();
         $channelOrder = Mage::getModel('channelengine/order')->loadByOrderId($_order->getId());
         $channelOrderId = $channelOrder->getChannelOrderId();
@@ -298,7 +302,7 @@ class Tritac_ChannelEngine_Model_Observer
                 $this->_helper->__("Tracking information can not be empty")
             );
             throw new Exception(
-                $this->_helper->__("Cannot save shipment without tracking information.")
+                $this->_helper->__("Cannot save shipment without tracking information. (CE #" . $channelOrderId . ")")
             );
         }
 
