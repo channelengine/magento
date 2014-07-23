@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Tritac_ChannelEngine>
-            <version>2.3.3</version>
+            <version>2.3.7</version>
         </Tritac_ChannelEngine>
     </modules>
 
@@ -118,15 +118,15 @@
 
     <adminhtml>
         <events>
-            <sales_order_shipment_save_after>
+            <sales_order_shipment_track_save_after>
                 <observers>
                     <shipmentsave>
                         <type>singleton</type>
                         <class>channelengine/observer</class>
-                        <method>saveShipment</method>
+                        <method>saveShipmentTrackTrace</method>
                     </shipmentsave>
                 </observers>
-            </sales_order_shipment_save_after>
+            </sales_order_shipment_track_save_after>
             <!--<core_block_abstract_prepare_layout_before>
                 <observers>
                     <ordergrid_column_append>
