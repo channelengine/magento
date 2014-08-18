@@ -18,11 +18,11 @@ class Tritac_ChannelEngineApiClient_Client {
     const ENV_ACCEPTATION	= 'acc';
     const ENV_PRODUCTION	= 'prod';
 
-    const DEV_URL 			= 'http://%s-api.channelengine.local';
-    const ACC_URL 			= 'http://%s-api.channelengine-acc.nl';
-    const PROD_URL 			= 'https://%s-api.channelengine.net';
+    const DEV_URL 			= 'http://%s.channelengine.local/api';
+    const ACC_URL 			= 'http://%s.channelengine-acc.nl/api';
+    const PROD_URL 			= 'https://%s.channelengine.net/api';
 
-    const BASE_PATH 		= '/v1/merchant/';
+    const BASE_PATH 		= '/v1/';
     const CERTIFICATE_PATH	= 'AddTrustExternalCARoot.crt';
 
     const ORDERS_PATH 		= 'orders/';
