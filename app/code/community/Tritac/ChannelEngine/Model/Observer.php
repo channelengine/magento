@@ -270,16 +270,14 @@ class Tritac_ChannelEngine_Model_Observer
      * @return bool
      * @throws Exception
      */
-    public function saveShipmentTrackTrace(Varien_Event_Observer $observer)
+    public function salesOrderShipmentTrackSaveAfter(Varien_Event_Observer $observer)
     {
         $event = $observer->getEvent();
-        $track = $event->getTrack();
         /** @var $_shipment Mage_Sales_Model_Order_Shipment */
-        $_shipment = $track->getShipment();
-
+        $_shipment = $event->getShipment();
         /** @var $_order Mage_Sales_Model_Order */
         $_order = $_shipment->getOrder();
-
+        
         $storeId = $_order->getStoreId();
         $channelOrder = Mage::getModel('channelengine/order')->loadByOrderId($_order->getId());
         $channelOrderId = $channelOrder->getChannelOrderId();
