@@ -10,6 +10,8 @@ class Tritac_ChannelEngineApiClient_Client {
     private $apiKey;
     private $apiSecret;
 
+    private $lastRepresentation;
+
     const FIDDLER_PROXY 	= '127.0.0.1:8888';
     const USE_FIDDLER 		= false;
     const FIDDLER_CERTIFICATE_PATH = 'fiddler.crt';
@@ -18,11 +20,11 @@ class Tritac_ChannelEngineApiClient_Client {
     const ENV_ACCEPTATION	= 'acc';
     const ENV_PRODUCTION	= 'prod';
 
-    const DEV_URL 			= 'http://%s.channelengine.local/api';
-    const ACC_URL 			= 'http://%s.channelengine-acc.nl/api';
-    const PROD_URL 			= 'https://%s.channelengine.net/api';
+    const DEV_URL 			= 'http://%s.channelengine.local';
+    const ACC_URL 			= 'http://%s.channelengine-acc.nl';
+    const PROD_URL 			= 'https://%s.channelengine.net';
 
-    const BASE_PATH 		= '/v1/';
+    const BASE_PATH 		= '/api/v1/';
     const CERTIFICATE_PATH	= 'AddTrustExternalCARoot.crt';
 
     const ORDERS_PATH 		= 'orders/';
@@ -50,6 +52,8 @@ class Tritac_ChannelEngineApiClient_Client {
         $this->apiKey = $apiKey;
         $this->apiSecret = $apiSecret;
         $this->certificate = __DIR__ . DIRECTORY_SEPARATOR . (self::USE_FIDDLER ? self::FIDDLER_CERTIFICATE_PATH : self::CERTIFICATE_PATH);
+
+        $this->lastRepresentation = '';
     }
 
     /* Public API methods */
@@ -189,9 +193,13 @@ class Tritac_ChannelEngineApiClient_Client {
             $message = Tritac_ChannelEngineApiClient_Helpers_JsonMapper::fromJson($response, 'Tritac_ChannelEngineApiClient_Models_Message');
             curl_close($request);
 
-            throw new Exception('Output headers: '. "\n" . $headers ."\n\n".
-                                'Content: ' . $content ."\n\n".
-                                'Unexpected status code [' . $status . ']. The server returned the following message: "' . $message->getMessage() . '"');
+            throw new Exception("\r\n".
+                '------Sent Headers-------------' . "\r\n" . $headers . "\r\n" .
+                '------Sent Content-------------' . "\r\n" . $content . "\r\n" .
+                '------Used Representation------' . "\r\n" . $this->lastRepresentation . "\r\n" .
+                '------Response Status----------' . "\r\n" . $status . "\r\n" .
+                '------Response Content---------' . "\r\n" . $message->getMessage() . "\r\n"
+            );
         }
         else
         {
@@ -235,9 +243,9 @@ class Tritac_ChannelEngineApiClient_Client {
             (strlen($content) > 0) ? base64_encode(md5($content, true)) : '',
             $this->apiKey
         );
-
-
         $representationString = implode("\n", $representation);
+
+        $this->lastRepresentation = $representationString;
 
         $hash = hash_hmac('sha256', utf8_encode($representationString), utf8_encode($this->apiSecret), true);
         $signature = base64_encode($hash);

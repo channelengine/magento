@@ -115,6 +115,12 @@ class Tritac_ChannelEngine_Model_Observer
                         // Add product to quote
                         try {
                             $_quoteItem = $quote->addProduct($_product, $params);
+                            
+                            if(is_string($_quoteItem)) {
+                                // Magento sometimes returns a string when the method fails. -_-"
+                                Mage::throwException('Failed to create quote item: ' . $_quoteItem);
+                            }
+
                             $_quoteItem->setChannelengineOrderLineId($item->getId());
 
                         } catch (Exception $e) {
