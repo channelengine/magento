@@ -52,7 +52,7 @@ class Tritac_ChannelEngine_Model_Observer
 
     /**
      * Fetch new orders from ChannelEngine.
-     * Uses for cronjob. Cronjob is set in extension config file.
+     * Ran by cron. The cronjob is set in extension config file.
      *
      * @return bool
      */
@@ -276,7 +276,7 @@ class Tritac_ChannelEngine_Model_Observer
      * @return bool
      * @throws Exception
      */
-    public function salesOrderShipmentTrackSaveAfter(Varien_Event_Observer $observer)
+    public function saveShipment(Varien_Event_Observer $observer)
     {
         $event = $observer->getEvent();
         /** @var $_shipment Mage_Sales_Model_Order_Shipment */
@@ -303,6 +303,9 @@ class Tritac_ChannelEngine_Model_Observer
         /**
          * Throw new exception if user not added tracking information
          */
+        $trackingCodes = $_shipment->getAllTracks();
+
+/*
         if(!$_shipment->getAllTracks()) {
             Mage::getSingleton('adminhtml/session')->addError(
                 $this->_helper->__("Tracking information can not be empty")
@@ -311,80 +314,80 @@ class Tritac_ChannelEngine_Model_Observer
                 $this->_helper->__("Cannot save shipment without tracking information. (CE #" . $channelOrderId . ")")
             );
         }
+*/
 
-        foreach($_shipment->getAllTracks() as $_track) {
-            // Initialize new ChannelEngine shipment object
-            $shipment = new Tritac_ChannelEngineApiClient_Models_Shipment();
-            $shipment->setOrderId($channelOrderId);
-            $shipment->setMerchantShipmentNo($_shipment->getId());
-            $shipment->setTrackTraceNo($_track->getNumber());
-            $shipment->setMethod($_track->getTitle());
+        // Initialize new ChannelEngine shipment object
+        $shipment = new Tritac_ChannelEngineApiClient_Models_Shipment();
+        $shipment->setOrderId($channelOrderId);
+        $shipment->setMerchantShipmentNo($_shipment->getId());
 
-            // Initialize new ChannelEngine collection of shipments
-            $linesCollection = new Tritac_ChannelEngineApiClient_Helpers_Collection('Tritac_ChannelEngineApiClient_Models_ShipmentLine');
 
-            foreach($_order->getAllItems() as $_orderItem) {
+        if(count($trackingCodes) > 0) {
 
-                // Load saved order item from db, because current items changed but still not saved
-                $_orderItemOrigin = Mage::getModel('sales/order_item')->load($_orderItem->getId());
+            $trackingCode = $trackingCodes[0];
+            $shipment->setTrackTraceNo($trackingCode->getNumber());
+            $shipment->setMethod($trackingCode->getTitle());
+        }
+        
 
-                // Get shipment item that contains required qty to ship.
-                $_shipmentItem = null;
-                foreach ($_shipment->getItemsCollection() as $item) {
-                    if ($item->getOrderItemId()==$_orderItem->getId()) {
-                        $_shipmentItem = $item;
-                        break;
-                    }
-                }
+        // Initialize new ChannelEngine collection of shipments
+        $linesCollection = new Tritac_ChannelEngineApiClient_Helpers_Collection('Tritac_ChannelEngineApiClient_Models_ShipmentLine');
 
-                if(is_null($_shipmentItem)) {
-                    continue;
-                }
+        foreach($_order->getAllItems() as $_orderItem) {
 
-                $qtyToShip = (int) $_shipmentItem->getQty();
-                $orderedQty = (int) $_orderItem->getQtyOrdered();
-                $shippedQty = (int) $_orderItemOrigin->getQtyShipped();
+            // Load saved order item from db, because current items changed but still not saved
+            $_orderItemOrigin = Mage::getModel('sales/order_item')->load($_orderItem->getId());
 
-                // Skip item if all qty already shipped
-                if($orderedQty == $shippedQty)
-                    continue;
-
-                // If we send a part of an order, post with status IN_BACKORDER
-                if($qtyToShip < $orderedQty - $shippedQty) {
-                    $shipmentLine = new Tritac_ChannelEngineApiClient_Models_ShipmentLine();
-                    // Fill required data
-                    $shipmentLine->setShipmentId($_shipment->getId());
-                    $shipmentLine->setOrderLineId($_orderItem->getChannelengineOrderLineId());
-                    $shipmentLine->setQuantity($orderedQty - $qtyToShip - $shippedQty);
-                    $shipmentLine->setStatus(Tritac_ChannelEngineApiClient_Enums_ShipmentLineStatus::IN_BACKORDER);
-                    $expectedDate = $this->_helper->getExpectedShipmentDate($storeId);
-                    $shipmentLine->setExpectedDate($expectedDate->format('Y-m-d'));
-                    $shipmentLines[] = $shipmentLine;
-                    // Put shipment line to shipments collection
-                    $linesCollection->append($shipmentLine);
-                }
-                // Initialize new ChannelEngine Shipment Line
-                if($qtyToShip > 0) {
-                    $shipmentLine = new Tritac_ChannelEngineApiClient_Models_ShipmentLine();
-                    // Fill required data
-                    $shipmentLine->setShipmentId($_shipment->getId());
-                    $shipmentLine->setOrderLineId($_orderItem->getChannelengineOrderLineId());
-                    $shipmentLine->setQuantity($qtyToShip);
-                    $shipmentLine->setStatus(Tritac_ChannelEngineApiClient_Enums_ShipmentLineStatus::SHIPPED);
-                    $shipmentLines[] = $shipmentLine;
-                    // Put shipment line to shipments collection
-                    $linesCollection->append($shipmentLine);
+            // Get shipment item that contains required qty to ship.
+            $_shipmentItem = null;
+            foreach ($_shipment->getItemsCollection() as $item) {
+                if ($item->getOrderItemId() == $_orderItem->getId()) {
+                    $_shipmentItem = $item;
+                    break;
                 }
             }
 
-            $shipment->setLines($linesCollection);
-            // Post shipment to ChannelEngine
-            $this->_client[$storeId]->postShipment($shipment);
+            if(is_null($_shipmentItem)) {
+                continue;
+            }
 
-            Mage::log("Shippment #{$_shipment->getId()} was placed successfully.");
+            $qtyToShip = (int) $_shipmentItem->getQty();
+            $orderedQty = (int) $_orderItem->getQtyOrdered();
+            $shippedQty = (int) $_orderItemOrigin->getQtyShipped();
 
-            return true;
+            // Skip item if all qty already shipped
+            if($orderedQty == $shippedQty || $qtyToShip == 0)
+                continue;
+
+            // If we send a part of an order, post with status IN_BACKORDER
+            /*if($qtyToShip < $orderedQty - $shippedQty) {  
+                $shipmentLine = new Tritac_ChannelEngineApiClient_Models_ShipmentLine();
+                $shipmentLine->setShipmentId($_shipment->getId());
+                $shipmentLine->setOrderLineId($_orderItem->getChannelengineOrderLineId());
+                $shipmentLine->setQuantity($orderedQty - $qtyToShip - $shippedQty);
+                $shipmentLine->setStatus(Tritac_ChannelEngineApiClient_Enums_ShipmentLineStatus::IN_BACKORDER);
+                $expectedDate = $this->_helper->getExpectedShipmentDate($storeId);
+                $shipmentLine->setExpectedDate($expectedDate->format('Y-m-d'));
+            }*/
+
+            // Initialize new ChannelEngine Shipment Line
+            $shipmentLine = new Tritac_ChannelEngineApiClient_Models_ShipmentLine();
+            // Fill required data
+            $shipmentLine->setShipmentId($_shipment->getId());
+            $shipmentLine->setOrderLineId($_orderItem->getChannelengineOrderLineId());
+            $shipmentLine->setQuantity($qtyToShip);
+            $shipmentLine->setStatus(Tritac_ChannelEngineApiClient_Enums_ShipmentLineStatus::SHIPPED);
+            // Put shipment line to shipments collection
+            $linesCollection->append($shipmentLine);
         }
+
+        $shipment->setLines($linesCollection);
+        // Post shipment to ChannelEngine
+        $this->_client[$storeId]->postShipment($shipment);
+
+        Mage::log("Shipment #{$_shipment->getId()} was placed successfully.");
+
+        return true;
     }
 
     /**
