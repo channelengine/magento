@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Tritac_ChannelEngine>
-            <version>2.5.0</version>
+            <version>2.7.0</version>
         </Tritac_ChannelEngine>
     </modules>
 
@@ -28,6 +28,9 @@
                     <order>
                         <table>channelengine_order</table>
                     </order>
+                    <shipment>
+                        <table>channelengine_shipment</table>
+                    </shipment>
                 </entities>
             </channelengine_resource>
         </models>

@@ -91,6 +91,17 @@ class Tritac_ChannelEngineApiClient_Client {
         return Tritac_ChannelEngineApiClient_Helpers_JsonMapper::fromJson($result, 'Tritac_ChannelEngineApiClient_Models_Shipment');
     }
 
+    /**
+     * Update an existing Shipment
+     * @param ChannelEngineApiClient\Models\Shipment $shipment The shipment to send
+     */
+    public function putShipment(Tritac_ChannelEngineApiClient_Models_Shipment $shipment)
+    {
+        $url = self::BASE_PATH . self::SHIPMENTS_PATH;
+        $result = $this->makeRequest(Tritac_ChannelEngineApiClient_Helpers_HttpMethod::PUT, $url, '', Tritac_ChannelEngineApiClient_Helpers_JsonMapper::toJson($shipment));
+        return Tritac_ChannelEngineApiClient_Helpers_JsonMapper::fromJson($result, 'Tritac_ChannelEngineApiClient_Models_Shipment');
+    }
+
     /* RETURNS */
 
     /**
