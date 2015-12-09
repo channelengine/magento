@@ -93,17 +93,23 @@ class Tritac_ChannelEngine_Model_Observer
                     $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
 
                     foreach($lines as $item) {
-
                         $productNo = $item->getMerchantProductNo();
+                        
                         $ids = explode('_', $productNo);
                         $productId = $ids[0];
-                        // Load magento product
-                        $_product = Mage::getModel('catalog/product')
-                            ->setStoreId($storeId);
                         $productOptions = array();
-                        $_product->load($productId);
                         if(count($ids) == 3) {
                             $productOptions = array($ids[1] => intval($ids[2]));
+                        }
+
+                        // Load magento product
+                        $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
+                        $_product->load($productId);
+
+                        if(!$_product->getId()) {
+                            // If the product can't be found by ID, fall back on the SKU.
+                            $productId = $_product->getIdBySku($productNo);
+                            $_product->load($productId);
                         }
 
                         // Prepare product parameters for quote
