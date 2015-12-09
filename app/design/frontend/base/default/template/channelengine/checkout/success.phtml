@@ -1,0 +1,43 @@
+<?php
+$order = Mage::getModel('sales/order')->load(Mage::getSingleton('checkout/session')->getLastOrderId());
+?>
+<script>
+    ce('track:order', {
+        merchantOrderNo: '<?php echo($order->getId()); ?>',
+        total: <?php echo($order->getGrandTotal()); ?>,
+        vat: <?php echo($order->getTaxRefunded() ? $order->getTaxRefunded() : 0); ?>,
+        shippingCost: <?php echo($order->getShippingAmount() ? $order->getShippingAmount() : 0); ?>,
+        city: '<?php echo($order->getBillingAddress()->getCity()); ?>',
+        country: '<?php echo($order->getBillingAddress()->getCountry()); ?>',
+        orderLines: [
+        <?php foreach($order->getAllItems() as $item): ?>
+
+        <?php
+            $categoryIds = Mage::getModel('catalog/product')->load($item->getProductId())->getCategoryIds();
+            $categoryId = end($categoryIds);
+            $category = Mage::getModel('catalog/category')->load($categoryId);
+            $path = explode('/', $category->getPath());
+            $categoryPath = '';
+
+            foreach($path as $catId) {
+                if($catId > 2) {
+                    $cat = Mage::getModel('catalog/category')->load($catId);
+                    if($categoryPath != '') {
+                        $categoryPath .= ' > ';
+                    }
+                    $categoryPath .= $cat->getName();
+                }
+            }
+        ?>
+            {
+                merchantProductNo: '<?php echo($item->getProductId()); ?>',
+                name: '<?php echo($item->getProduct()->getName()); ?>',
+                category: '<?php echo($categoryPath); ?>',
+                price: <?php echo($item->getProduct()->getPrice()); ?>,
+                quantity: <?php echo(intval($item->getQtyOrdered())); ?>
+            },
+        <?php endforeach ?>
+
+        ]
+    });
+</script>

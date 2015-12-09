@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<layout version="0.1.0">
+    <default>
+        <reference name="head">
+            <block type="channelengine/head" name="channelengine.tracking" template="channelengine/head.phtml" />
+        </reference>
+    </default>
+
+
+
+    <checkout_onepage_success translate="label">
+        <reference name="content">
+            <block type="checkout/onepage_success" name="channelengine.checkout.success" template="channelengine/checkout/success.phtml"/>
+        </reference>
+    </checkout_onepage_success>
+
+</layout>

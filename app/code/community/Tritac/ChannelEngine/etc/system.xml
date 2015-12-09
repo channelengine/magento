@@ -1,0 +1,145 @@
+<?xml version="1.0"?>
+
+<config>
+    <tabs>
+        <channelengine_com translate="label">
+            <label>ChannelEngine.com</label>
+            <sort_order>220</sort_order>
+        </channelengine_com>
+    </tabs>
+
+    <sections>
+        <channelengine translate="label" module="channelengine">
+            <label>Settings</label>
+            <tab>channelengine_com</tab>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>
+            <sort_order>1000</sort_order>
+            <groups>
+                <general translate="label">
+                    <label>General</label>
+                    <frontend_type>text</frontend_type>
+                    <show_in_default>0</show_in_default>
+                    <show_in_website>0</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <sort_order>1</sort_order>
+                    <fields>
+                        <api_key translate="label">
+                            <label>Api Key</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>1</sort_order>
+                            <show_in_default>0</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </api_key>
+                        <api_secret translate="label">
+                            <label>Api Secret</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>2</sort_order>
+                            <show_in_default>0</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </api_secret>
+                        <tenant translate="label">
+                            <label>Account Name</label>
+                            <frontend_type>text</frontend_type>
+                            <comment>
+                                <![CDATA[<span class="notice">Your account name can be found in the ChannelEngine address: <strong>your-account-name</strong>.channelengine.net</span>]]>
+                            </comment>
+                            <sort_order>3</sort_order>
+                            <show_in_default>0</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </tenant>
+                    </fields>
+                </general>
+                <shipping translate="label">
+                    <label>Shipping</label>
+                    <frontend_type>text</frontend_type>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <sort_order>2</sort_order>
+                    <fields>
+                        <expected_date translate="label">
+                            <label>Expected Shipping Period (For backorders)</label>
+                            <frontend_type>text</frontend_type>
+                            <comment>
+                                <![CDATA[<span class="notice">Please set the number of working days. Applies to order items with status "In Backorder"</span>]]>
+                            </comment>
+                            <sort_order>2</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </expected_date>
+                    </fields>
+                </shipping>
+                <feed translate="label">
+                    <label>Product Feed</label>
+                    <frontend_type>text</frontend_type>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <sort_order>3</sort_order>
+                    <fields>
+                        <vat_rate translate="label">
+                            <label>Default Vat Rate (%)</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </vat_rate>
+                        <shipping_time translate="label">
+                            <label>Shipping Time (In Stock products)</label>
+                            <frontend_type>text</frontend_type>
+                            <comment>
+                                <![CDATA[<span class="notice">For example: "Ordered before 9:00PM, Delivered tomorrow"</span>]]>
+                            </comment>
+                            <sort_order>2</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </shipping_time>
+                        <shipping_time_oos translate="label">
+                            <label>Shipping Time (Out Of Stock products)</label>
+                            <frontend_type>text</frontend_type>
+                            <comment>
+                                <![CDATA[<span class="notice">For example: "Delivered within 5 working days"</span>]]>
+                            </comment>
+                            <sort_order>3</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </shipping_time_oos>
+                        <gtin translate="label">
+                            <label>Product GTIN</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>channelengine/system_config_source_gtin</source_model>
+                            <comment>
+                                <![CDATA[<span class="notice">The attribute that contains the product GTIN (i.e. EAN, ISBN, UPC)</span>]]>
+                            </comment>
+                            <sort_order>4</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </gtin>
+                        <generate_product_feed translate="button_label">
+                            <label>Generate product feed</label>
+                            <button_label>Generate Product Feed</button_label>
+                            <comment>
+                                <![CDATA[<span class="notice">You need to configure cronjobs on your server to generate feeds automatically</span>]]>
+                            </comment>
+                            <frontend_model>channelengine/adminhtml_system_config_feed</frontend_model>
+                            <sort_order>5</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </generate_product_feed>
+                    </fields>
+                </feed>
+            </groups>
+        </channelengine>
+    </sections>
+</config>
