@@ -592,7 +592,10 @@ class Tritac_ChannelEngine_Model_Observer
                 ->addFieldToFilter('type_id', array('in' => array('simple')))
                 ->addStoreFilter($_store)
                 ->addAttributeToFilter('status', 1)
-                ->addAttributeToFilter('visibility', array('in' => array('2', '3', '4')))
+                ->addAttributeToFilter('visibility', array('in' => array(
+                    Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_CATALOG,
+                    Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_SEARCH,
+                    Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH)))
                 ->addAttributeToSort('entity_id', 'DESC');
 
             // Add qty and category fields to select
@@ -608,6 +611,7 @@ class Tritac_ChannelEngine_Model_Observer
                     array('category_id' => 'MAX(`ccp`.`category_id`)')
                 )
                 ->group('e.entity_id');
+            
 
             Mage::getSingleton('core/resource_iterator')->walk(
                 $collection->getSelect(),
@@ -646,17 +650,17 @@ class Tritac_ChannelEngine_Model_Observer
                 $productModel->setData('entity_id', $parentData['entity_id']);
                 $productModel->setData('url_key', $parentData['url_key']);
                 $productModel->setData('store_id', $parentData['store_id']);
+
                 $parentData['url'] = $productModel->getProductUrl();
 
                 $specialPrice = $parentData['special_price'];
                 $specialFrom = $parentData['special_from_date'];
                 $specialTo = $parentData['special_to_date'];
-                $parentData['price'] = Mage::getModel('catalog/product_type_price')
-                    ->calculateSpecialPrice($parentData['price'], $specialPrice, $specialFrom, $specialTo, $storeId);
+                $parentData['price'] = Mage::getModel('catalog/product_type_price')->calculateSpecialPrice($parentData['price'], $specialPrice, $specialFrom, $specialTo, $storeId);
 
                 $xml = $this->_getProductXml($parentData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
-                $_childProducts = Mage::getModel('catalog/product_type_configurable')
-                    ->getUsedProducts(null, $_product);
+                
+                $_childProducts = Mage::getModel('catalog/product_type_configurable')->getUsedProductCollection($_product)->addAttributeToSelect($attributesToSelect);//->getUsedProducts(null, $_product);
 
                 foreach($_childProducts as $_child) {
                     $childData = $_child->getData();
@@ -665,6 +669,11 @@ class Tritac_ChannelEngine_Model_Observer
                     $childData['price'] = $parentData['price'];
                     $childData['url'] = $parentData['url'];
                     $childData['description'] = $parentData['description'];
+                    
+                    if(isset($childData['stock_item']) && $childData['stockItem'] !== null) {
+                        $stock = $childData['stock_item']->getData();
+                        $childData['qty'] = $stock['qty'];
+                    }
 
                     if(!isset($childData['image']) || $childData['image'] == 'no_slection') {
                         $childData['image'] = $parentData['image'];
@@ -681,10 +690,12 @@ class Tritac_ChannelEngine_Model_Observer
                             $childData['price'] = $newPrice;
                         }
                     }
+
                     $xml .= $this->_getProductXml($childData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
                 }
                 $io->streamWrite($xml);
             }
+
 
 
             $io->streamWrite('</Products>');
@@ -767,9 +778,11 @@ class Tritac_ChannelEngine_Model_Observer
         if(isset($product['group_code'])) {
             $xml .= "<GroupCode><![CDATA[".$product['group_code']."]]></GroupCode>";
         }
+
         if(isset($product['parent_id'])) {
             $xml .= "<ParentId><![CDATA[".$product['parent_id']."]]></ParentId>";
         }
+
         $xml .= "<Type><![CDATA[".$product['type_id']."]]></Type>";
         $xml .= "<Name><![CDATA[".$product['name']."]]></Name>";
         $xml .= "<Description><![CDATA[".$product['description']."]]></Description>";
@@ -779,6 +792,7 @@ class Tritac_ChannelEngine_Model_Observer
 
         // Add product stock qty
         $xml .= "<Stock><![CDATA[".$product['qty']."]]></Stock>";
+
         // Add product SKU and GTIN
         $xml .= "<SKU><![CDATA[".$product['sku']."]]></SKU>";
         if(!empty($product['gtin'])) {
