@@ -785,7 +785,7 @@ class Tritac_ChannelEngine_Model_Observer
 
         $xml .= "<Type><![CDATA[".$product['type_id']."]]></Type>";
         $xml .= "<Name><![CDATA[".$product['name']."]]></Name>";
-        $xml .= "<Description><![CDATA[".$product['description']."]]></Description>";
+        $xml .= "<Description><![CDATA[".strip_tags($product['description'])."]]></Description>";
         $xml .= "<Price><![CDATA[".$product['price']."]]></Price>";
         $xml .= "<ListPrice><![CDATA[".$product['msrp']."]]></ListPrice>";
         $xml .= "<PurchasePrice><![CDATA[".$product['cost']."]]></PurchasePrice>";
