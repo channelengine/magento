@@ -466,8 +466,9 @@ class Tritac_ChannelEngine_Model_Observer
      */
     public function generateFeed()
     {
+        @set_time_limit(15 * 60);
         $start_memory = memory_get_usage();
-
+        
         /**
          * Prepare categories array
          */
@@ -660,17 +661,21 @@ class Tritac_ChannelEngine_Model_Observer
 
                 $xml = $this->_getProductXml($parentData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
                 
-                $_childProducts = Mage::getModel('catalog/product_type_configurable')->getUsedProductCollection($_product)->addAttributeToSelect($attributesToSelect);//->getUsedProducts(null, $_product);
+                $_childProducts = Mage::getModel('catalog/product_type_configurable')
+                    //->getUsedProductCollection($_product)
+                    //->addAttributeToSelect($attributesToSelect);
+                    ->getUsedProducts(null, $_product);
 
                 foreach($_childProducts as $_child) {
                     $childData = $_child->getData();
+                    
                     $childData['id'] = $childData['entity_id'];
                     $childData['parent_id'] = $parentData['id'];
                     $childData['price'] = $parentData['price'];
                     $childData['url'] = $parentData['url'];
                     $childData['description'] = $parentData['description'];
                     
-                    if(isset($childData['stock_item']) && $childData['stockItem'] !== null) {
+                    if(isset($childData['stock_item']) && $childData['stock_item'] !== null) {
                         $stock = $childData['stock_item']->getData();
                         $childData['qty'] = $stock['qty'];
                     }
