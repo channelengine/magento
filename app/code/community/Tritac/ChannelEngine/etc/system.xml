@@ -131,6 +131,7 @@
                             <comment>
                                 <![CDATA[<span class="notice">You need to configure cronjobs on your server to generate feeds automatically</span>]]>
                             </comment>
+                            <frontend_type>button</frontend_type>
                             <frontend_model>channelengine/adminhtml_system_config_feed</frontend_model>
                             <sort_order>5</sort_order>
                             <show_in_default>1</show_in_default>
