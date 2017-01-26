@@ -126,7 +126,12 @@ class Tritac_ChannelEngine_Model_Observer
                                 Mage::throwException('Failed to create quote item: ' . $_quoteItem);
                             }
 
+                            $price = $item->getUnitPriceInclVat() - $item->getUnitVat();
+                            $_quoteItem->setOriginalCustomPrice($price);
+                            $_quoteItem->setCustomPrice($price);
+                            $_quoteItem->getProduct()->setIsSuperMode(true);
                             $_quoteItem->setChannelengineOrderLineId($item->getId());
+
 
                         } catch (Exception $e) {
 
@@ -283,7 +288,6 @@ class Tritac_ChannelEngine_Model_Observer
      */
     public function saveShipment(Varien_Event_Observer $observer)
     {
-        Mage::log('--------------------------------------');
         $event = $observer->getEvent();
         /** @var $_shipment Mage_Sales_Model_Order_Shipment */
         $_shipment = $event->getShipment();
@@ -476,7 +480,7 @@ class Tritac_ChannelEngine_Model_Observer
         $parent = Mage::app()->getWebsite(true)->getDefaultStore()->getRootCategoryId();
         $category = Mage::getModel('catalog/category');
         if ($category->checkId($parent)) {
-            $storeCategories = $category->getCategories($parent, 0, true, true, true);
+            $storeCategories = $category->getCategories($parent, 0, rtue, true, true);
             foreach($storeCategories as $_category) {
                 $categoryArray[$_category->getId()] = $_category->getData();
             }
@@ -706,8 +710,6 @@ class Tritac_ChannelEngine_Model_Observer
             $io->streamWrite('</Products>');
             $io->streamUnlock();
             $io->streamClose();
-
-            Mage::log("Product feed {$name} was generated successfully");
         }
 
         return true;
