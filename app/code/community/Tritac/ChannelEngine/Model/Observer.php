@@ -126,7 +126,7 @@ class Tritac_ChannelEngine_Model_Observer
                                 Mage::throwException('Failed to create quote item: ' . $_quoteItem);
                             }
 
-                            $price = $item->getUnitPriceInclVat() - $item->getUnitVat();
+                            $price = $item->getUnitPriceInclVat();
                             $_quoteItem->setOriginalCustomPrice($price);
                             $_quoteItem->setCustomPrice($price);
                             $_quoteItem->getProduct()->setIsSuperMode(true);
