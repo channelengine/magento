@@ -669,9 +669,10 @@ class Tritac_ChannelEngine_Model_Observer
                 $xml = $this->_getProductXml($parentData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
 
                 $_childProducts = Mage::getModel('catalog/product_type_configurable')
-                    //->getUsedProductCollection($_product)
-                    //->addAttributeToSelect($attributesToSelect);
-                    ->getUsedProducts(null, $_product);
+                    ->getUsedProductCollection($_product)
+                    ->addAttributeToSelect($attributesToSelect)
+                    ->getItems();
+
 
                 foreach($_childProducts as $_child) {
                     $childData = $_child->getData();
