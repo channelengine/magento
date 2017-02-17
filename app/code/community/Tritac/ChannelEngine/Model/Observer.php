@@ -146,10 +146,11 @@ class Tritac_ChannelEngine_Model_Observer
                 }
 
                 $phone = $order->getPhone();
-                if(empty($phone))
-                    $phone = '-';
+                if(empty($phone)) $phone = '-';
+
                 // Prepare billing and shipping addresses
                 $billingData = array(
+                    'company'       => $billingAddress->getCompanyName(),
                     'firstname'     => $billingAddress->getFirstName(),
                     'lastname'      => $billingAddress->getLastName(),
                     'email'         => $order->getEmail(),
@@ -162,7 +163,9 @@ class Tritac_ChannelEngine_Model_Observer
                         $billingAddress->getHouseNr().
                         $billingAddress->getHouseNrAddition()
                 );
+
                 $shippingData = array(
+                    'company'       => $shippingAddress->getCompanyName(),
                     'firstname'     => $shippingAddress->getFirstName(),
                     'lastname'      => $shippingAddress->getLastName(),
                     'email'         => $order->getEmail(),
@@ -184,6 +187,7 @@ class Tritac_ChannelEngine_Model_Observer
 
                 $quote->getBillingAddress()
                     ->addData($billingData);
+
                 $quote->getShippingAddress()
                     ->addData($shippingData)
                     ->setSaveInAddressBook(0)
@@ -314,7 +318,6 @@ class Tritac_ChannelEngine_Model_Observer
         $trackingCode = null;
         $trackingCodes = $_shipment->getAllTracks();
         if(count($trackingCodes) > 0) {
-            
             $trackingCode = $trackingCodes[0];
             $ceShipment->setTrackTraceNo($trackingCode->getNumber());
             $ceShipment->setMethod($trackingCode->getTitle());
@@ -480,7 +483,7 @@ class Tritac_ChannelEngine_Model_Observer
         $parent = Mage::app()->getWebsite(true)->getDefaultStore()->getRootCategoryId();
         $category = Mage::getModel('catalog/category');
         if ($category->checkId($parent)) {
-            $storeCategories = $category->getCategories($parent, 0, rtue, true, true);
+            $storeCategories = $category->getCategories($parent, 0, true, true, true);
             foreach($storeCategories as $_category) {
                 $categoryArray[$_category->getId()] = $_category->getData();
             }
@@ -664,7 +667,7 @@ class Tritac_ChannelEngine_Model_Observer
                 $parentData['price'] = Mage::getModel('catalog/product_type_price')->calculateSpecialPrice($parentData['price'], $specialPrice, $specialFrom, $specialTo, $storeId);
 
                 $xml = $this->_getProductXml($parentData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
-                
+
                 $_childProducts = Mage::getModel('catalog/product_type_configurable')
                     //->getUsedProductCollection($_product)
                     //->addAttributeToSelect($attributesToSelect);
