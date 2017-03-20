@@ -130,6 +130,15 @@
                     </shipmentsave>
                 </observers>
             </sales_order_shipment_save_after>
+            <resource_get_tablename>
+                <observers>
+                    <channelengine_composer_autoloader>
+                        <type>singleton</type>
+                        <class>channelengine/loader</class>
+                        <method>addComposerAutoloader</method>
+                    </channelengine_composer_autoloader>
+                </observers>
+            </resource_get_tablename>
             <!--<core_block_abstract_prepare_layout_before>
                 <observers>
                     <ordergrid_column_append>

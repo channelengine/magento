@@ -1,6 +1,9 @@
 <?php
 class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
 
+    const AUTOLOAD_FILENAME = 'autoload.php';
+    const DEFAULT_PATH = '{{libdir}}/ChannelEngine/vendor';
+
     protected $_config = null;
 
     /**
@@ -9,6 +12,42 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
      * @var int
      */
     protected $_defaultTimeToShip = 5;
+
+    /**
+     * The location of the vendor directory on the machine the site is running on.
+     * It always comes without a trailing slash.
+     *
+     * @return string
+     */
+    public function getVendorDirectoryPath()
+    {
+        $path = (string) Mage::getConfig()->getNode('global/composer_autoloader/path');
+        if (!$path) {
+            $path = self::DEFAULT_PATH;
+        }
+        $path = str_replace('/', DS, $path);
+        $path = str_replace('{{basedir}}', Mage::getBaseDir(), $path);
+        $path = str_replace('{{libdir}}', Mage::getBaseDir('lib'), $path);
+        $path = rtrim($path, DS);
+        return realpath($path);
+    }
+
+    /**
+     * @param string|null $path Path to vendor directory. Pass null to use the configured value.
+     * @param string|null $filename Filename of autoload file. Pass null to use the default (autoload.php).
+     */
+    public function registerAutoloader($path = null, $filename = null)
+    {
+        if ($path === null) {
+            $path = $this->getVendorDirectoryPath();
+        }
+        if ($filename === null) {
+            $filename = self::AUTOLOAD_FILENAME;
+        }
+        if (file_exists($path . DS . $filename)) {
+            require_once($path . DS . $filename);
+        }
+    }
 
     /**
      * Get extension general config
@@ -44,10 +83,13 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
     {
         $result = array();
 
-        foreach($this->getConfig() as $storeId => $storeConfig) {
-            $result[$storeId] = $storeConfig['general'];
+        foreach($this->getConfig() as $storeId => $storeConfig)
+        {
+            if(isset($storeConfig['general']))
+            {
+                $result[$storeId] = $storeConfig['general'];
+            }
         }
-
         return $result;
     }
 
@@ -60,29 +102,18 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
     public function checkGeneralConfig($storeId = null)
     {
         $config = Mage::getStoreConfig('channelengine/general', $storeId);
-
-        if(empty($config['api_key']) || empty($config['api_secret']) || empty($config['tenant'])) {
-            $storeMsg = ($storeId) ? 'for store '.$storeId : '';
-            Mage::log(
-                "Couldn't connect to ChannelEngine.
-                Please specify account keys {$storeMsg}
-                (System/Configuration/Tritac ChannelEngine/Settings/General)"
-            );
-            return false;
-        }
-
-        return true;
+        return (empty($config['api_key']) || empty($config['api_secret']) || empty($config['tenant'])) ? false : true;
     }
 
     /**
      * Get store expected shipment text
      *
-     * @param $store_id
+     * @param $storeId
      * @return DateTime
      */
-    public function getExpectedShipmentDate($store_id)
+    public function getExpectedShipmentDate($storeId)
     {
-        $config = $this->getConfig($store_id);
+        $config = $this->getConfig($storeId);
 
         $weekdays = (int) $config['shipping']['expected_date'];
         if($weekdays <= 0)
