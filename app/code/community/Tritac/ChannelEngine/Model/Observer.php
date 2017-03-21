@@ -2,6 +2,9 @@
 /**
  * Observer model
  */
+use DateTime;
+use Exception;
+
 use ChannelEngine\ApiClient\ApiClient;
 use ChannelEngine\ApiClient\Configuration;
 
@@ -159,7 +162,7 @@ class Tritac_ChannelEngine_Model_Observer
                     catch (Exception $e)
                     {
                         Mage::getModel('adminnotification/inbox')->addCritical(
-                            "An order (#{$order->getId()}) could not be imported",
+                            "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
                             "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
                         );
                         Mage::logException($e);
@@ -238,7 +241,7 @@ class Tritac_ChannelEngine_Model_Observer
                 catch (Exception $e)
                 {
                     Mage::getModel('adminnotification/inbox')->addCritical(
-                        "An order (#{$order->getId()}) could not be imported",
+                        "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
                         "Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
                     );
                     Mage::logException($e);
@@ -302,7 +305,7 @@ class Tritac_ChannelEngine_Model_Observer
                 catch (Exception $e)
                 {
                     Mage::getModel('adminnotification/inbox')->addCritical(
-                        "An invoice could not be created (order #{$magentoOrder->getIncrementId()}, channel order #{$order->getId()})",
+                        "An invoice could not be created (order #{$magentoOrder->getIncrementId()}, {$order->getChannelName()} #{$order->getChannelOrderNo()})",
                         "Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
                     );
                     Mage::logException($e);
@@ -450,7 +453,8 @@ class Tritac_ChannelEngine_Model_Observer
         foreach($this->_client as $storeId => $client)
         {
             $returnApi = new ReturnApi($client);
-            $response = $returnApi->returnGetDeclaredByChannel();
+            $lastUpdatedAt = new DateTime('-1 day');
+            $response = $returnApi->returnGetDeclaredByChannel($lastUpdatedAt);
 
             if(!$response->getSuccess())
             {
@@ -468,9 +472,9 @@ class Tritac_ChannelEngine_Model_Observer
                 if(!$_order->getIncrementId()) continue;
 
                 $link       = "https://". $this->_config[$storeId]['general']['tenant'] .".channelengine.net/returns";
-                $title      = "A new return was declared in ChannelEngine for order #" . $_order->getOrderId();
-                $message    = "Magento Order #: <a href='".
-                    Mage::helper('adminhtml')->getUrl('adminhtml/sales_order/view', array('order_id' => $_order->getOrderId())).
+                $title      = "A new return was declared in ChannelEngine for order #" . $_order->getIncrementId();
+                $message    = "Magento Order #<a href='".
+                    Mage::helper('adminhtml')->getUrl('adminhtml/sales_order/view', array('order_id' => $_order->getId())).
                     "'>".
                     $_order->getIncrementId().
                     "</a><br />";
@@ -491,11 +495,7 @@ class Tritac_ChannelEngine_Model_Observer
                 if ($data) continue;
 
                 // Add new notification
-                Mage::getModel('adminnotification/inbox')->addCritical(
-                    $title,
-                    $message,
-                    $link
-                );
+                Mage::getModel('adminnotification/inbox')->addCritical($title, $message);
             }
         }
     }
