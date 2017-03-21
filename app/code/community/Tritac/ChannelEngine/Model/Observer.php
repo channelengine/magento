@@ -181,7 +181,7 @@ class Tritac_ChannelEngine_Model_Observer
                     'postcode'      => $billingAddress->getZipCode(),
                     'city'          => $billingAddress->getCity(),
                     'street'        =>
-                        $billingAddress->getStreetName().' '.
+                        $billingAddress->getStreetName()."\n".
                         $billingAddress->getHouseNr().
                         $billingAddress->getHouseNrAddition()
                 );
@@ -196,7 +196,7 @@ class Tritac_ChannelEngine_Model_Observer
                     'postcode'      => $shippingAddress->getZipCode(),
                     'city'          => $shippingAddress->getCity(),
                     'street'        =>
-                        $shippingAddress->getStreetName().' '.
+                        $shippingAddress->getStreetName()."\n".
                         $shippingAddress->getHouseNr().
                         $shippingAddress->getHouseNrAddition()
                 );
