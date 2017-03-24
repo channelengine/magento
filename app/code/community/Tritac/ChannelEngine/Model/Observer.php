@@ -2,8 +2,6 @@
 /**
  * Observer model
  */
-use DateTime;
-use Exception;
 
 use ChannelEngine\ApiClient\ApiClient;
 use ChannelEngine\ApiClient\Configuration;
@@ -44,6 +42,8 @@ class Tritac_ChannelEngine_Model_Observer
 
     const ATTRIBUTES_LIMIT = 30;
 
+    private $_hasPostNL = false;
+
     /**
      * Retrieve and validate API config
      * Initialize API client
@@ -51,6 +51,8 @@ class Tritac_ChannelEngine_Model_Observer
     public function __construct()
     {
         $this->_helper = Mage::helper('channelengine');
+        $this->_hasPostNL = Mage::helper('core')->isModuleEnabled('TIG_PostNL');
+
         $this->_config = $this->_helper->getConfig();
         /**
          * Check required config parameters. Initialize API client.
@@ -75,6 +77,7 @@ class Tritac_ChannelEngine_Model_Observer
             '['.$response->getStatusCode().'] ' . $response->getMessage() 
         ); 
     }
+
     /**
      * Fetch new orders from ChannelEngine.
      * Ran by cron. The cronjob is set in extension config file.
@@ -333,6 +336,7 @@ class Tritac_ChannelEngine_Model_Observer
         $_shipment = $event->getShipment();
         /** @var $_order Mage_Sales_Model_Order */
         $_order = $_shipment->getOrder();
+
         $storeId = $_order->getStoreId();
 
         $errorTitle = "A shipment (#{$_shipment->getId()}) could not be updated";
@@ -345,7 +349,7 @@ class Tritac_ChannelEngine_Model_Observer
 
         // Initialize new ChannelEngine shipment object
         $ceShipment = new MerchantShipmentRequest();
-        $ceShipmentUpdate = new MerchantShipmentTrackingRequest();
+        
 
         $ceShipment->setMerchantOrderNo($_order->getId());
         $ceShipment->setMerchantShipmentNo($_shipment->getId());
@@ -358,10 +362,17 @@ class Tritac_ChannelEngine_Model_Observer
         {
             $trackingCode = $trackingCodes[0];
             $ceShipment->setTrackTraceNo($trackingCode->getNumber());
-            $ceShipment->setMethod($trackingCode->getTitle());
+            $ceShipment->setMethod(($trackingCode->getCarrierCode() == 'custom') ? $trackingCode->getTitle() : $trackingCode->getCarrierCode());      
+        }
 
-             $ceShipmentUpdate->setTrackTraceNo($trackingCode->getNumber());
-             $ceShipmentUpdate->setMethod($trackingCode->getTitle());
+        // Post NL support, in case of a leter box parcel, we can safely omit the tracking code.
+        if($this->_hasPostNL)
+        {
+            $postnlShipment = Mage::getModel('postnl_core/shipment')->load($_shipment->getId(), 'shipment_id');
+            if($postnlShipment->getId() != null && $postnlShipment->getIsBuspakje())
+            {
+                $ceShipment->setMethod('Briefpost'); 
+            } 
         }
 
         // If the shipment is already known to ChannelEngine we will just update it
@@ -369,6 +380,10 @@ class Tritac_ChannelEngine_Model_Observer
 
         if($_channelShipment->getId() != null)
         {
+            $ceShipmentUpdate = new MerchantShipmentTrackingRequest();
+            $ceShipmentUpdate->setTrackTraceNo($ceShipment->getTrackTraceNo());
+            $ceShipmentUpdate->setTrackTraceNo($ceShipment->getMethod());
+
             try
             {
                 $response = $shipmentApi->shipmentUpdate($_shipment->getId(), $ceShipmentUpdate);
