@@ -62,7 +62,7 @@ class Tritac_ChannelEngine_Model_Observer
                 $apiConfig = new Configuration();
 
                 $apiConfig->setApiKey('apikey', $storeConfig['general']['api_key']);
-                $apiConfig->setHost('http://'.$storeConfig['general']['tenant'].'.channelengine.local/api');
+                $apiConfig->setHost('https://'.$storeConfig['general']['tenant'].'.channelengine.net/api');
 
                 $client = new ApiClient($apiConfig);
                 $this->_client[$storeId] = $client;
