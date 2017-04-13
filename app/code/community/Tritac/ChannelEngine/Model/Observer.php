@@ -339,6 +339,9 @@ class Tritac_ChannelEngine_Model_Observer
 
         $storeId = $_order->getStoreId();
 
+        $ceOrder = Mage::getModel('channelengine/order')->loadByOrderId($_order->getId());
+        if($ceOrder->getId() == null) return true;
+
         $errorTitle = "A shipment (#{$_shipment->getId()}) could not be updated";
         $errorMessage = "Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792";
 
@@ -349,11 +352,8 @@ class Tritac_ChannelEngine_Model_Observer
 
         // Initialize new ChannelEngine shipment object
         $ceShipment = new MerchantShipmentRequest();
-        
-
         $ceShipment->setMerchantOrderNo($_order->getId());
         $ceShipment->setMerchantShipmentNo($_shipment->getId());
-
 
         // Set tracking info if available
         $trackingCodes = $_shipment->getAllTracks();
@@ -407,8 +407,7 @@ class Tritac_ChannelEngine_Model_Observer
         // Add the shipment lines
         $ceShipmentLines = [];
         foreach($_shipment->getAllItems() as $_shipmentItem)
-        {
-            
+        {  
             // Get the quantity for this shipment
             $shippedQty = (int)$_shipmentItem->getQty();
             if($shippedQty == 0) continue;
