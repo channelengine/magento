@@ -169,7 +169,7 @@ class Tritac_ChannelEngine_Model_Observer
                             "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
                         );
                         Mage::logException($e);
-                        return false;
+                        break;
                     }
                 }
 
