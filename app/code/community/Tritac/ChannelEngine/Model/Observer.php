@@ -612,6 +612,10 @@ class Tritac_ChannelEngine_Model_Observer
                 'visibility',
                 'msrp'
             );
+            
+            if(!empty($this->_config[$storeId]['feed']['gtin'])) {
+                $attributesToSelect[] = $this->_config[$storeId]['feed']['gtin'];
+            }
 
             $visibleAttributes = array();
             $attributes = Mage::getSingleton('eav/config')
@@ -631,10 +635,6 @@ class Tritac_ChannelEngine_Model_Observer
                         $attributesToSelect[] = $code;
                     }
                 }
-            }
-
-            if(!empty($this->_config[$storeId]['feed']['gtin'])) {
-                $attributesToSelect[] = $this->_config[$storeId]['feed']['gtin'];
             }
 
             if( (count($attributesToSelect) > self::ATTRIBUTES_LIMIT) && !$collection->isEnabledFlat()) {
