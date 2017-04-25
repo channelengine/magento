@@ -590,16 +590,13 @@ class Tritac_ChannelEngine_Model_Observer
             /**
              * Retrieve product collection with all visible attributes
              */
-            if(Mage::helper('catalog/product_flat')->isEnabled($storeId)) {
-                Mage::getResourceSingleton('catalog/product_flat')->setStoreId($storeId);
-            }
             $collection = Mage::getModel('catalog/product')->getCollection();
+            $flatCatalogEnabled = Mage::helper('catalog/product_flat')->isEnabled($storeId);
+            if($flatCatalogEnabled) $collection->getEntity()->setStoreId($storeId);
 
-            if(Mage::helper('catalog/product_flat')->isEnabled($storeId)) {
-                $collection->getEntity()->setStoreId($storeId);
-            }
-
-            $systemAttributes = $attributesToSelect =  array(
+            $visibleAttributes = array();
+            $systemAttributes = array();
+            $attributesToSelect = array(
                 'name',
                 'description',
                 'image',
@@ -612,36 +609,34 @@ class Tritac_ChannelEngine_Model_Observer
                 'visibility',
                 'msrp'
             );
-            
-            if(!empty($this->_config[$storeId]['feed']['gtin'])) {
-                $attributesToSelect[] = $this->_config[$storeId]['feed']['gtin'];
-            }
 
-            $visibleAttributes = array();
-            $attributes = Mage::getSingleton('eav/config')
-                ->getEntityType(Mage_Catalog_Model_Product::ENTITY)->getAttributeCollection();
+            if(!empty($this->_config[$storeId]['feed']['gtin'])) $attributesToSelect[] = $this->_config[$storeId]['feed']['gtin'];
+            $attributes = Mage::getResourceModel('catalog/product_attribute_collection');
 
-            foreach($attributes as $attribute) {
-                if( ($attribute->getIsVisible() && $attribute->getIsVisibleOnFront())
-                    || in_array($attribute->getAttributeCode(), $systemAttributes))
+            foreach($attributes as $attribute)
+            {
+                $code = $attribute->getAttributeCode();
+                $isFlat = $flatCatalogEnabled && $attribute->getUsedInProductListing();
+                $isRegular = !$flatCatalogEnabled && $attribute->getIsVisible() && $attribute->getIsVisibleOnFront();
+
+                // Only allow a subset of system attributes
+                $isSystem = !$attribute->getIsUserDefined();
+
+                if(!$isFlat && !$isRegular || in_array($code, $attributesToSelect)) continue;
+
+                if($isSystem)
                 {
-                    $code = $attribute->getAttributeCode();
-                    $visibleAttributes[$code]['label'] = $attribute->getFrontendLabel();
-
-                    foreach( $attribute->getSource()->getAllOptions(false) as $option ) {
-                        $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
-                    }
-                    if(!in_array($code, $attributesToSelect)) {
-                        $attributesToSelect[] = $code;
-                    }
+                    $systemAttributes[] = $code;
+                    continue;
                 }
-            }
 
-            if( (count($attributesToSelect) > self::ATTRIBUTES_LIMIT) && !$collection->isEnabledFlat()) {
-                $error = $this->_helper->__('Too many visible attributes. Please enable catalog product flat mode.');
-                Mage::getSingleton('adminhtml/session')->addError($error);
-                echo 'redirect';
-                return false;
+                $attributesToSelect[] = $code;
+                
+                $visibleAttributes[$code]['label'] = $attribute->getFrontendLabel();  
+                foreach($attribute->getSource()->getAllOptions(false) as $option)
+                {
+                    $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
+                }
             }
 
             $collection->addAttributeToSelect($attributesToSelect, 'left')
@@ -668,7 +663,6 @@ class Tritac_ChannelEngine_Model_Observer
                 )
                 ->group('e.entity_id');
             
-
             Mage::getSingleton('core/resource_iterator')->walk(
                 $collection->getSelect(),
                 array(array($this, 'callbackGenerateFeed')),
@@ -907,6 +901,7 @@ class Tritac_ChannelEngine_Model_Observer
         if(isset($additional['attributes'])) {
             $xml .= '<Attributes>';
             foreach($additional['attributes'] as $code => $attribute) {
+
                 if(isset($product[$code]) && !in_array($code, $additional['systemAttributes'])) {
                     $xml .= "<".$code.">";
                     /*$xml .= "<label><![CDATA[".$attribute['label']."]]></label>";
