@@ -550,8 +550,10 @@ class Tritac_ChannelEngine_Model_Observer
          * Export products from each store.
          * Note: products with undefined website id will not be export.
          */
-        foreach(Mage::app()->getStores() as $_store) {
-            Mage::app()->setCurrentStore($_store);
+        foreach(Mage::app()->getStores() as $_store)
+        {
+            Mage::app()->setCurrentStore($_store);           
+
             $path = Mage::getBaseDir('media') . DS . 'channelengine' . DS;
             $storeConfig = $this->_helper->getConfig($_store->getId());
             $name = $storeConfig['general']['tenant'].'_products.xml';
@@ -590,9 +592,15 @@ class Tritac_ChannelEngine_Model_Observer
             /**
              * Retrieve product collection with all visible attributes
              */
-            $collection = Mage::getModel('catalog/product')->getCollection();
-            $flatCatalogEnabled = Mage::helper('catalog/product_flat')->isEnabled($storeId);
-            if($flatCatalogEnabled) $collection->getEntity()->setStoreId($storeId);
+            $collection = Mage::getResourceModel('catalog/product_collection');
+            $collection->getEntity()->setStoreId($storeId); 
+
+            $flatCatalogEnabled = $collection->isEnabledFlat();
+
+            // Make sure to create a new instance of our collection after setting the store ID
+            // when using the flat catalog. Otherwise store ID will be ignored. This is a bug in magento.
+            // https://magento.stackexchange.com/a/25908
+            if($flatCatalogEnabled) $collection = Mage::getResourceModel('catalog/product_collection');
 
             $visibleAttributes = array();
             $systemAttributes = array();
