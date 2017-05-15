@@ -593,18 +593,22 @@ class Tritac_ChannelEngine_Model_Observer
              * Retrieve product collection with all visible attributes
              */
             $collection = Mage::getResourceModel('catalog/product_collection');
-            $collection->getEntity()->setStoreId($storeId); 
-
             $flatCatalogEnabled = $collection->isEnabledFlat();
 
             // Make sure to create a new instance of our collection after setting the store ID
             // when using the flat catalog. Otherwise store ID will be ignored. This is a bug in magento.
             // https://magento.stackexchange.com/a/25908
-            if($flatCatalogEnabled) $collection = Mage::getResourceModel('catalog/product_collection');
+            if($flatCatalogEnabled)
+            {
+                // The flat product entity has a setStoreId method, the regular entity does not have one
+                $collection->getEntity()->setStoreId($storeId);
+                $collection = Mage::getResourceModel('catalog/product_collection');  
+            } 
 
             $visibleAttributes = array();
             $systemAttributes = array();
             $attributesToSelect = array(
+                'sku',
                 'name',
                 'description',
                 'image',
