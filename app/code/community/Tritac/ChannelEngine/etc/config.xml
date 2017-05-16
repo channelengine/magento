@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Tritac_ChannelEngine>
-            <version>4.4.0</version>
+            <version>4.4.1</version>
         </Tritac_ChannelEngine>
     </modules>
 

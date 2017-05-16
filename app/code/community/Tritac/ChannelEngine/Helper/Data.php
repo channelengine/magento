@@ -102,7 +102,7 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
     public function checkGeneralConfig($storeId = null)
     {
         $config = Mage::getStoreConfig('channelengine/general', $storeId);
-        return (empty($config['api_key']) || empty($config['api_secret']) || empty($config['tenant'])) ? false : true;
+        return (empty($config['api_key']) || empty($config['tenant'])) ? false : true;
     }
 
     /**
