@@ -5,15 +5,18 @@
  * @category   Tritac
  * @package    Tritac_ChannelEngine
  */
-class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Feed extends Mage_Adminhtml_Block_System_Config_Form_Field
+class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Form_Button extends Mage_Adminhtml_Block_System_Config_Form_Field
 {
     /*
      * Set template
      */
+    private $data;
+    private $id;
+
     protected function _construct()
     {
         parent::_construct();
-        $this->setTemplate('channelengine/system/config/feed/generate_button.phtml');
+        $this->setTemplate('channelengine/system/config/form/ajax_button.phtml');
     }
 
     /**
@@ -24,6 +27,8 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Feed extends Mage_Admin
      */
     protected function _getElementHtml(Varien_Data_Form_Element_Abstract $element)
     {
+        $this->data = $element->getOriginalData();
+        $this->id = '_id_' . rand();
         return $this->_toHtml();
     }
 
@@ -34,7 +39,13 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Feed extends Mage_Admin
      */
     public function getAjaxUrl()
     {
-        return Mage::helper('adminhtml')->getUrl('channelengine/adminhtml_generate/ajax');
+        $action = $this->data['ajax_action'];
+        return Mage::helper('adminhtml')->getUrl('channelengine/adminhtml_generate/' . $action);
+    }
+
+    public function getId()
+    {
+        return $this->id;
     }
 
     /**
@@ -44,10 +55,12 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Feed extends Mage_Admin
      */
     public function getButtonHtml()
     {
+        $label = $this->data['button_label'];
+        
         $button = $this->getLayout()->createBlock('adminhtml/widget_button')->setData(array(
-            'id'       => 'channelengine_generate_feed_button',
-            'label'    => $this->helper('channelengine')->__('Generate Feed'),
-            'onclick'  => 'javascript:generateFeed(); return false;'
+            'id'       => $this->id,
+            'label'    => $label, //$this->helper('channelengine')->__('Generate Feed'),
+            'onclick'  => 'javascript:makeRequest'.$this->id .'(); return false;'
         ));
  
         return $button->toHtml();

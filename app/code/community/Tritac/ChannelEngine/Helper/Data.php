@@ -115,7 +115,7 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
     {
         $config = $this->getConfig($storeId);
 
-        $weekdays = (int) $config['shipping']['expected_date'];
+        $weekdays = (int) $config['optional']['expected_date'];
         if($weekdays <= 0)
             $weekdays = $this->_defaultTimeToShip;
 

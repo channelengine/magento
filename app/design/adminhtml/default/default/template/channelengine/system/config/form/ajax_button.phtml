@@ -5,35 +5,32 @@
 ?>
 <script type="text/javascript">
     //<![CDATA[
-    function generateFeed() {
+    function makeRequest<?php echo $this->getId() ?>() {
         var elem = $('<?php echo $this->getId() ?>');
-
+        var resultElem = $('<?php echo 'ce_res_'. $this->getId() ?>')
+        var result = "<?php echo $this->__("Failed to run manual task. See magento log.") ?>";
         new Ajax.Request('<?php echo $this->getAjaxUrl() ?>', {
             onSuccess: function(response) {
-                result = "<?php echo $this->__("Couldn't generate feed. See magento log.") ?>";
                 try {
-                    response = response.responseText;
-                    if (response == 1) {
-                        result = '<?php echo $this->__("Product Feed was generated successfully") ?>';
+                    response = response.responseText.evalJSON(true);
+                    if (!response.error) {
                         elem.removeClassName('fail').addClassName('success')
-                    } else if(response == 'redirect') {
-                        result = "<?php echo $this->__("Too many visible attributes.") ?>";
-                        window.location.reload();
                     } else {
                         elem.removeClassName('success').addClassName('fail')
                     }
+                    result = response.message;
                 } catch (e) {
                     elem.removeClassName('success').addClassName('fail')
                 }
-                $('#generate_result').update(result);
+                resultElem.update(result);
             },
             onFailure: function(response) {
-                result = "<?php echo $this->__("Couldn't generate feed. See magento log.") ?>";
                 elem.removeClassName('success').addClassName('fail');
+                resultElem.update(result);
             }
         });
     }
     //]]>
 </script>
 <?php echo $this->getButtonHtml(); ?>
-<span id="generate_result"><?php echo $this->escapeHtml($this->getLabel()) ?></span>
+<span id="ce_res<?php echo $this->getId() ?>"><?php echo $this->escapeHtml($this->getLabel()) ?></span>

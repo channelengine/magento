@@ -622,7 +622,7 @@ class Tritac_ChannelEngine_Model_Observer
                 'msrp'
             );
 
-            if(!empty($this->_config[$storeId]['feed']['gtin'])) $attributesToSelect[] = $this->_config[$storeId]['feed']['gtin'];
+            if(!empty($this->_config[$storeId]['general']['gtin'])) $attributesToSelect[] = $this->_config[$storeId]['genera'l]['gtin'];
             $attributes = Mage::getResourceModel('catalog/product_attribute_collection');
 
             foreach($attributes as $attribute)
@@ -787,8 +787,8 @@ class Tritac_ChannelEngine_Model_Observer
         $xml = '';
 
         $product['store_id'] = $storeId;
-        if(!empty($this->_config[$storeId]['feed']['gtin'])) {
-            $product['gtin'] = $product[$this->_config[$storeId]['feed']['gtin']];
+        if(!empty($this->_config[$storeId]['general']['gtin'])) {
+            $product['gtin'] = $product[$this->_config[$storeId]['general']['gtin']];
         }
 
         $specialPrice = $product['special_price'];
@@ -865,12 +865,12 @@ class Tritac_ChannelEngine_Model_Observer
         }
 
         // VAT and Shipping Time are pre configured in extension settings
-        if(!empty($this->_config[$product['store_id']]['feed']['vat_rate'])) {
-            $vat = $this->_config[$product['store_id']]['feed']['vat_rate'];
+        if(!empty($this->_config[$product['store_id']]['optional']['vat_rate'])) {
+            $vat = $this->_config[$product['store_id']]['optional']['vat_rate'];
             $xml .= "<VAT><![CDATA[".$vat."]]></VAT>";
         }
 
-        $shippingTime = ($product['qty'] > 0) ? $this->_config[$product['store_id']]['feed']['shipping_time'] : $this->_config[$product['store_id']]['feed']['shipping_time_oos'];
+        $shippingTime = ($product['qty'] > 0) ? $this->_config[$product['store_id']]['optional']['shipping_time'] : $this->_config[$product['store_id']]['optional']['shipping_time_oos'];
 
         if($shippingTime) {
             $xml .= "<ShippingTime><![CDATA[".$shippingTime."]]></ShippingTime>";

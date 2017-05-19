@@ -1,27 +1,46 @@
 <?php
 class Tritac_ChannelEngine_Adminhtml_GenerateController extends Mage_Adminhtml_Controller_Action
 {
-    public function ajaxAction()
+    public function feedAction()
     {
         $observer = Mage::getModel('channelengine/observer');
-    	$res = $this->getResponse();
-    	$res->setHeader('Content-type', 'application/json');
-        if($observer->generateFeed()) $res->setBody(1);
+        $result = $observer->generateFeed();
+        if($result) {
+            $this->returnStatus(false, $result);
+        } else {
+            $this->returnStatus(true, $result);
+        }
     }
 
-    public function importOrdersAction()
+    public function ordersAction()
     {
         $observer = Mage::getModel('channelengine/observer');
-        $res = $this->getResponse();
-        $res->setHeader('Content-type', 'application/json');
-        if($observer->fetchNewOrders()) $res->setBody(1);
+        $result = $observer->fetchNewOrders();
+        if($result) {
+            $this->returnStatus(false, $result);
+        } else {
+            $this->returnStatus(true, $result);
+        }
     }
 
-    public function importReturnsAction()
+    public function returnsAction()
     {
         $observer = Mage::getModel('channelengine/observer');
+        $result = $observer->fetchReturns();
+        if($result) {
+            $this->returnStatus(false, $result);
+        } else {
+            $this->returnStatus(true, $result);
+        }
+    }
+
+    private function returnStatus($error, $message)
+    {
         $res = $this->getResponse();
         $res->setHeader('Content-type', 'application/json');
-        if($observer->fetchReturns()) $res->setBody(1);
+
+        $body = json_encode(array('error' => $error, 'message' => $message));
+
+        $res->setBody($body);
     }
 }
