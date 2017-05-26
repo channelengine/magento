@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Tritac_ChannelEngine>
-            <version>3.0.0</version>
+            <version>4.4.3</version>
         </Tritac_ChannelEngine>
     </modules>
 
@@ -130,6 +130,15 @@
                     </shipmentsave>
                 </observers>
             </sales_order_shipment_save_after>
+            <resource_get_tablename>
+                <observers>
+                    <channelengine_composer_autoloader>
+                        <type>singleton</type>
+                        <class>channelengine/loader</class>
+                        <method>addComposerAutoloader</method>
+                    </channelengine_composer_autoloader>
+                </observers>
+            </resource_get_tablename>
             <!--<core_block_abstract_prepare_layout_before>
                 <observers>
                     <ordergrid_column_append>
@@ -165,30 +174,41 @@
 
     <crontab>
         <jobs>
-            <fetch_channelengine_orders>
+            <channelengine_import_orders>
                 <schedule>
-                    <cron_expr>*/15 * * * *</cron_expr>
+                    <cron_expr>*/5 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>channelengine/observer::fetchNewOrders</model>
                 </run>
-            </fetch_channelengine_orders>
-            <fetch_channelengine_returns>
+            </channelengine_import_orders>
+            <channelengine_import_returns>
                 <schedule>
-                    <cron_expr>*/15 * * * *</cron_expr>
+                    <cron_expr>*/5 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>channelengine/observer::fetchReturns</model>
                 </run>
-            </fetch_channelengine_returns>
-            <generate_channelengine_feed>
+            </channelengine_import_returns>
+            <channelengine_generate_feed>
                 <schedule>
                     <cron_expr>30 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>channelengine/observer::generateFeed</model>
                 </run>
-            </generate_channelengine_feed>
+            </channelengine_generate_feed>
         </jobs>
+        <events>
+            <resource_get_tablename>
+                <observers>
+                    <channelengine_composer_autoloader>
+                        <type>singleton</type>
+                        <class>channelengine/loader</class>
+                        <method>addComposerAutoloader</method>
+                    </channelengine_composer_autoloader>
+                </observers>
+            </resource_get_tablename>
+        </events>
     </crontab>
 </config>

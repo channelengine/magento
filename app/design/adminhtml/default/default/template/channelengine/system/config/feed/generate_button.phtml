@@ -6,7 +6,7 @@
 <script type="text/javascript">
     //<![CDATA[
     function generateFeed() {
-        var elem = $('<?php echo $this->getHtmlId() ?>');
+        var elem = $('<?php echo $this->getId() ?>');
 
         new Ajax.Request('<?php echo $this->getAjaxUrl() ?>', {
             onSuccess: function(response) {
@@ -25,7 +25,7 @@
                 } catch (e) {
                     elem.removeClassName('success').addClassName('fail')
                 }
-                $('generate_result').update(result);
+                $('#generate_result').update(result);
             },
             onFailure: function(response) {
                 result = "<?php echo $this->__("Couldn't generate feed. See magento log.") ?>";
@@ -35,6 +35,5 @@
     }
     //]]>
 </script>
-<button onclick="javascript:generateFeed(); return false;" class="scalable" type="button" id="<?php echo $this->getHtmlId() ?>">
-    <span id="generate_result"><?php echo $this->escapeHtml($this->getButtonLabel()) ?></span>
-</button>
+<?php echo $this->getButtonHtml(); ?>
+<span id="generate_result"><?php echo $this->escapeHtml($this->getLabel()) ?></span>
