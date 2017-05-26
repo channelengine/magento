@@ -625,6 +625,8 @@ class Tritac_ChannelEngine_Model_Observer
             if(!empty($this->_config[$storeId]['feed']['gtin'])) $attributesToSelect[] = $this->_config[$storeId]['feed']['gtin'];
             $attributes = Mage::getResourceModel('catalog/product_attribute_collection');
 
+            $totalAttributes = count($attributesToSelect);
+
             foreach($attributes as $attribute)
             {
                 $code = $attribute->getAttributeCode();
@@ -634,7 +636,7 @@ class Tritac_ChannelEngine_Model_Observer
                 // Only allow a subset of system attributes
                 $isSystem = !$attribute->getIsUserDefined();
 
-                if(!$isFlat && !$isRegular || in_array($code, $attributesToSelect)) continue;
+                if(!$isFlat && !$isRegular || in_array($code, $attributesToSelect) || $totalAttributes >= ATTRIBUTES_LIMIT) continue;
 
                 if($isSystem)
                 {
@@ -649,6 +651,8 @@ class Tritac_ChannelEngine_Model_Observer
                 {
                     $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
                 }
+
+                $totalAttributes++;
             }
 
             $collection->addAttributeToSelect($attributesToSelect, 'left')
