@@ -556,6 +556,9 @@ class Tritac_ChannelEngine_Model_Observer
 
             $path = Mage::getBaseDir('media') . DS . 'channelengine' . DS;
             $storeConfig = $this->_helper->getConfig($_store->getId());
+
+            if(!$this->_helper->checkGeneralConfig($_store->getId())) continue;
+
             $name = $storeConfig['general']['tenant'].'_products.xml';
             $file = $path . DS . $name;
             $date = date('c');
@@ -678,7 +681,7 @@ class Tritac_ChannelEngine_Model_Observer
                     array('category_id' => 'MAX(`ccp`.`category_id`)')
                 )
                 ->group('e.entity_id');
-            
+
             Mage::getSingleton('core/resource_iterator')->walk(
                 $collection->getSelect(),
                 array(array($this, 'callbackGenerateFeed')),
