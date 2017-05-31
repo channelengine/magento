@@ -639,7 +639,7 @@ class Tritac_ChannelEngine_Model_Observer
                 // Only allow a subset of system attributes
                 $isSystem = !$attribute->getIsUserDefined();
 
-                if(!$isFlat && !$isRegular || in_array($code, $attributesToSelect) || $totalAttributes >= ATTRIBUTES_LIMIT) continue;
+                if(!$isFlat && !$isRegular || in_array($code, $attributesToSelect) || $totalAttributes >= self::ATTRIBUTES_LIMIT) continue;
 
                 if($isSystem)
                 {
@@ -662,10 +662,10 @@ class Tritac_ChannelEngine_Model_Observer
                 ->addFieldToFilter('type_id', array('in' => array('simple')))
                 ->addStoreFilter($_store)
                 ->addAttributeToFilter('status', 1)
-                ->addAttributeToFilter('visibility', array('in' => array(
+                /*->addAttributeToFilter('visibility', array('in' => array(
                     Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_CATALOG,
                     Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_SEARCH,
-                    Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH)))
+                    Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH)))*/
                 ->addAttributeToSort('entity_id', 'DESC');
 
             // Add qty and category fields to select
@@ -729,10 +729,11 @@ class Tritac_ChannelEngine_Model_Observer
 
                 $xml = $this->_getProductXml($parentData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
 
-                $_childProducts = Mage::getModel('catalog/product_type_configurable')
+                $childProductCollection = Mage::getModel('catalog/product_type_configurable')
                     ->getUsedProductCollection($_product)
-                    ->addAttributeToSelect($attributesToSelect)
-                    ->getItems();
+                    ->addAttributeToSelect($attributesToSelect);
+
+                $_childProducts = $childProductCollection->getItems();
 
 
                 foreach($_childProducts as $_child) {
