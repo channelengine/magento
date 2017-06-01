@@ -613,6 +613,7 @@ class Tritac_ChannelEngine_Model_Observer
             $attributesToSelect = array(
                 'sku',
                 'name',
+                'manufacturer',
                 'description',
                 'image',
                 'url_key',
@@ -639,7 +640,13 @@ class Tritac_ChannelEngine_Model_Observer
                 // Only allow a subset of system attributes
                 $isSystem = !$attribute->getIsUserDefined();
 
-                if(!$isFlat && !$isRegular || in_array($code, $attributesToSelect) || $totalAttributes >= self::ATTRIBUTES_LIMIT) continue;
+                if(!$isFlat && !$isRegular || ($isRegular && $totalAttributes >= self::ATTRIBUTES_LIMIT)) continue;
+
+                $visibleAttributes[$code]['label'] = $attribute->getFrontendLabel();  
+                foreach($attribute->getSource()->getAllOptions(false) as $option)
+                {
+                    $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
+                }
 
                 if($isSystem)
                 {
@@ -647,14 +654,9 @@ class Tritac_ChannelEngine_Model_Observer
                     continue;
                 }
 
-                $attributesToSelect[] = $code;
-                
-                $visibleAttributes[$code]['label'] = $attribute->getFrontendLabel();  
-                foreach($attribute->getSource()->getAllOptions(false) as $option)
-                {
-                    $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
-                }
+                if(in_array($code, $attributesToSelect)) continue;
 
+                $attributesToSelect[] = $code;
                 $totalAttributes++;
             }
 
@@ -662,10 +664,10 @@ class Tritac_ChannelEngine_Model_Observer
                 ->addFieldToFilter('type_id', array('in' => array('simple')))
                 ->addStoreFilter($_store)
                 ->addAttributeToFilter('status', 1)
-                /*->addAttributeToFilter('visibility', array('in' => array(
+                ->addAttributeToFilter('visibility', array('in' => array(
                     Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_CATALOG,
                     Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_SEARCH,
-                    Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH)))*/
+                    Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH)))
                 ->addAttributeToSort('entity_id', 'DESC');
 
             // Add qty and category fields to select
@@ -858,6 +860,7 @@ class Tritac_ChannelEngine_Model_Observer
 
         $xml .= "<Type><![CDATA[".$product['type_id']."]]></Type>";
         $xml .= "<Name><![CDATA[".$product['name']."]]></Name>";
+        $xml .= "<Brand><![CDATA[".$product['manufacturer']."]]></Brand>";
         $xml .= "<Description><![CDATA[".strip_tags($product['description'])."]]></Description>";
         $xml .= "<Price><![CDATA[".$product['price']."]]></Price>";
         $xml .= "<ListPrice><![CDATA[".$product['msrp']."]]></ListPrice>";
