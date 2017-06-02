@@ -626,7 +626,7 @@ class Tritac_ChannelEngine_Model_Observer
                 'msrp'
             );
 
-            if(!empty($this->_config[$storeId]['general']['gtin'])) $attributesToSelect[] = $this->_config[$storeId]['genera'l]['gtin'];
+            if(!empty($this->_config[$storeId]['general']['gtin'])) $attributesToSelect[] = $this->_config[$storeId]['general']['gtin'];
             $attributes = Mage::getResourceModel('catalog/product_attribute_collection');
 
             $totalAttributes = count($attributesToSelect);

@@ -12,10 +12,6 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Form_Feed extends Mage_
      */
     private $helper;
 
-    public function __construct() {
-        $this->helper = Mage::helper('channelengine');
-    }
-
     protected function _construct()
     {
         parent::_construct();
