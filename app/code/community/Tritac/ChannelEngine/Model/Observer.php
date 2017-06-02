@@ -556,6 +556,9 @@ class Tritac_ChannelEngine_Model_Observer
 
             $path = Mage::getBaseDir('media') . DS . 'channelengine' . DS;
             $storeConfig = $this->_helper->getConfig($_store->getId());
+
+            if(!$this->_helper->checkGeneralConfig($_store->getId())) continue;
+
             $name = $storeConfig['general']['tenant'].'_products.xml';
             $file = $path . DS . $name;
             $date = date('c');
@@ -610,6 +613,7 @@ class Tritac_ChannelEngine_Model_Observer
             $attributesToSelect = array(
                 'sku',
                 'name',
+                'manufacturer',
                 'description',
                 'image',
                 'url_key',
@@ -625,6 +629,8 @@ class Tritac_ChannelEngine_Model_Observer
             if(!empty($this->_config[$storeId]['general']['gtin'])) $attributesToSelect[] = $this->_config[$storeId]['genera'l]['gtin'];
             $attributes = Mage::getResourceModel('catalog/product_attribute_collection');
 
+            $totalAttributes = count($attributesToSelect);
+
             foreach($attributes as $attribute)
             {
                 $code = $attribute->getAttributeCode();
@@ -634,7 +640,13 @@ class Tritac_ChannelEngine_Model_Observer
                 // Only allow a subset of system attributes
                 $isSystem = !$attribute->getIsUserDefined();
 
-                if(!$isFlat && !$isRegular || in_array($code, $attributesToSelect)) continue;
+                if(!$isFlat && !$isRegular || ($isRegular && $totalAttributes >= self::ATTRIBUTES_LIMIT)) continue;
+
+                $visibleAttributes[$code]['label'] = $attribute->getFrontendLabel();  
+                foreach($attribute->getSource()->getAllOptions(false) as $option)
+                {
+                    $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
+                }
 
                 if($isSystem)
                 {
@@ -642,13 +654,10 @@ class Tritac_ChannelEngine_Model_Observer
                     continue;
                 }
 
+                if(in_array($code, $attributesToSelect)) continue;
+
                 $attributesToSelect[] = $code;
-                
-                $visibleAttributes[$code]['label'] = $attribute->getFrontendLabel();  
-                foreach($attribute->getSource()->getAllOptions(false) as $option)
-                {
-                    $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
-                }
+                $totalAttributes++;
             }
 
             $collection->addAttributeToSelect($attributesToSelect, 'left')
@@ -674,7 +683,7 @@ class Tritac_ChannelEngine_Model_Observer
                     array('category_id' => 'MAX(`ccp`.`category_id`)')
                 )
                 ->group('e.entity_id');
-            
+
             Mage::getSingleton('core/resource_iterator')->walk(
                 $collection->getSelect(),
                 array(array($this, 'callbackGenerateFeed')),
@@ -722,10 +731,11 @@ class Tritac_ChannelEngine_Model_Observer
 
                 $xml = $this->_getProductXml($parentData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
 
-                $_childProducts = Mage::getModel('catalog/product_type_configurable')
+                $childProductCollection = Mage::getModel('catalog/product_type_configurable')
                     ->getUsedProductCollection($_product)
-                    ->addAttributeToSelect($attributesToSelect)
-                    ->getItems();
+                    ->addAttributeToSelect($attributesToSelect);
+
+                $_childProducts = $childProductCollection->getItems();
 
 
                 foreach($_childProducts as $_child) {
