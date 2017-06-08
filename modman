@@ -1,0 +1,6 @@
+app/code/community/Tritac/ChhannelEngine/*                app/code/community/Tritac/ChannelEngine/
+app/design/adminhtml/default/default/template/*           app/design/adminhtml/default/default/template/
+app/design/frontend/base/default/template/*               app/design/frontend/base/default/template/
+lib/ChannelEngine/*                                       lib/ChannelEngine/
+app/design/frontend/base/default/layout/channelengine.xml app/design/frontend/base/default/layout/channelengine.xml
+app/etc/modules/Tritac_ChannelEngine.xml                  app/etc/modules/Tritac_ChannelEngine.xml
