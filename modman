@@ -1,4 +1,4 @@
-app/code/community/Tritac/ChhannelEngine/*                app/code/community/Tritac/ChannelEngine/
+app/code/community/Tritac/*                               app/code/community/Tritac/
 app/design/adminhtml/default/default/template/*           app/design/adminhtml/default/default/template/
 app/design/frontend/base/default/template/*               app/design/frontend/base/default/template/
 lib/ChannelEngine/*                                       lib/ChannelEngine/
