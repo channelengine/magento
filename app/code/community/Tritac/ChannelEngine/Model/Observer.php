@@ -382,7 +382,7 @@ class Tritac_ChannelEngine_Model_Observer
         {
             $ceShipmentUpdate = new MerchantShipmentTrackingRequest();
             $ceShipmentUpdate->setTrackTraceNo($ceShipment->getTrackTraceNo());
-            $ceShipmentUpdate->setTrackTraceNo($ceShipment->getMethod());
+            $ceShipmentUpdate->setMethod($ceShipment->getMethod());
 
             try
             {
@@ -396,7 +396,7 @@ class Tritac_ChannelEngine_Model_Observer
             }
             catch(Exception $e)
             {
-                //Mage::getModel('adminnotification/inbox')->addCritical($errorTitle, $errorMessage);
+                Mage::log($e->getResponseBody());
                 Mage::logException($e);
                 return false;
             }
