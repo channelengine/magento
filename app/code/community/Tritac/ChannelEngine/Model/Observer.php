@@ -5,6 +5,7 @@
 
 use ChannelEngine\ApiClient\ApiClient;
 use ChannelEngine\ApiClient\Configuration;
+use ChannelEngine\ApiClient\ApiException;
 
 use ChannelEngine\ApiClient\Api\OrderApi;
 use ChannelEngine\ApiClient\Api\ShipmentApi;
@@ -19,6 +20,21 @@ use ChannelEngine\ApiClient\Model\MerchantShipmentLineRequest;
 
 class Tritac_ChannelEngine_Model_Observer
 {
+    /**
+     * To prevent exceeding the maximum number of allowed mySQL joins 
+     * when not using the flat catalog. 
+     *
+     * @var int
+     */
+    const ATTRIBUTES_LIMIT = 30;
+
+    /**
+     * The CE logfile path
+     *
+     * @var string
+     */
+    const LOGFILE = 'channelengine.log';
+
     /**
      * API client
      *
@@ -40,8 +56,11 @@ class Tritac_ChannelEngine_Model_Observer
      */
     protected $_helper = null;
 
-    const ATTRIBUTES_LIMIT = 30;
-
+    /**
+     * Whether this merchant uses the postNL extension
+     *
+     * @var bool
+     */
     private $_hasPostNL = false;
 
     /**
@@ -70,12 +89,33 @@ class Tritac_ChannelEngine_Model_Observer
         }
     }
 
-    private function logApiError($storeId, $apiResponse)
+    private function logApiError($response, $model = null)
     {
-        Mage::log(
-            'Failed to make ChannelEngine API call '. $storeId . "\r\n" . 
-            '['.$response->getStatusCode().'] ' . $response->getMessage() 
-        ); 
+        $this->log(
+            'API Call failed ['.$response->getStatusCode().'] ' . $response->getMessage() . PHP_EOL . print_r($model, true),
+            Zend_Log::ERR
+        );
+    }
+
+    private function log($message, $level = null)
+    {
+        Mage::log($message . PHP_EOL . '--------------------', $level, $file = self::LOGFILE, true);
+    }
+
+    private function logException($e, $model = null)
+    {
+        if($e instanceof ApiException)
+        {
+            $message = $e->getMessage() . PHP_EOL . 
+                print_r($e->getResponseBody(), true) .  
+                print_r($e->getResponseHeaders(), true) .
+                print_r($model, true) .
+                $e->getTraceAsString();
+            $this->log($message, Zend_Log::ERR);
+            return;
+        }
+
+        $this->log($e->__toString(), Zend_Log::ERR);
     }
 
     /**
@@ -94,11 +134,20 @@ class Tritac_ChannelEngine_Model_Observer
         foreach($this->_client as $storeId => $client)
         {
             $orderApi = new OrderApi($client);
+            $response = null;
 
-            $response = $orderApi->orderGetNew();
-            if(!$response->getSuccess())
+            try
             {
-                $this->logApiError($storeId, $response);
+                $response = $orderApi->orderGetNew();
+                if(!$response->getSuccess())
+                {
+                    $this->logApiError($response);
+                    continue;
+                }
+            }
+            catch (Exception $e)
+            {
+                $this->logException($e);
                 continue;
             }
 
@@ -168,8 +217,8 @@ class Tritac_ChannelEngine_Model_Observer
                             "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
                             "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
                         );
-                        Mage::logException($e);
-                        break;
+                        $this->logException($e);
+                        continue 2;
                     }
                 }
 
@@ -247,7 +296,7 @@ class Tritac_ChannelEngine_Model_Observer
                         "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
                         "Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
                     );
-                    Mage::logException($e);
+                    $this->logException($e);
                     continue;
                 }
 
@@ -255,7 +304,7 @@ class Tritac_ChannelEngine_Model_Observer
 
                 if(!$magentoOrder->getIncrementId())
                 {
-                    Mage::log("An order (#{$order->getId()}) could not be imported");
+                    $this->log("An order (#{$order->getId()}) could not be imported");
                     continue;
                 }
 
@@ -277,7 +326,6 @@ class Tritac_ChannelEngine_Model_Observer
                     $os = $order->getChannelOrderSupport();
                     $canShipPartiallyItem = ($os == MerchantOrderResponse::CHANNEL_ORDER_SUPPORT_SPLIT_ORDER_LINES);
                     $canShipPartially = ($canShipPartiallyItem || $os == MerchantOrderResponse::CHANNEL_ORDER_SUPPORT_SPLIT_ORDERS);
-                    
 
                     // Initialize new channel order
                     $_channelOrder = Mage::getModel('channelengine/order');
@@ -296,14 +344,6 @@ class Tritac_ChannelEngine_Model_Observer
                         ->addObject($invoice->getOrder())
                         ->addObject($_channelOrder);
                     $transactionSave->save();
-
-
-                    // Send order acknowledgement to CE.
-                    $ack = new OrderAcknowledgement();
-                    $ack->setMerchantOrderNo($magentoOrder->getId());
-                    $ack->setOrderId($order->getId());
-                    $orderApi->orderAcknowledge($ack);
-
                 }
                 catch (Exception $e)
                 {
@@ -311,11 +351,31 @@ class Tritac_ChannelEngine_Model_Observer
                         "An invoice could not be created (order #{$magentoOrder->getIncrementId()}, {$order->getChannelName()} #{$order->getChannelOrderNo()})",
                         "Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
                     );
-                    Mage::logException($e);
+
+                    $this->logException($e);
                     continue;
                 }
 
-                Mage::log("Order #{$magentoOrder->getIncrementId()} was imported successfully.");
+
+                try
+                {
+                    // Send order acknowledgement to CE.
+                    $ack = new OrderAcknowledgement();
+                    $ack->setMerchantOrderNo($magentoOrder->getId());
+                    $ack->setOrderId($order->getId());
+                    $response = $orderApi->orderAcknowledge($ack);
+
+                    if(!$response->getSuccess())
+                    {
+                        $this->logApiError($response, $ack);
+                        continue;
+                    }
+                }
+                catch(Exception $e) 
+                {
+                    $this->logException($e);
+                    continue;
+                }
             }
         }
 
@@ -389,15 +449,14 @@ class Tritac_ChannelEngine_Model_Observer
                 $response = $shipmentApi->shipmentUpdate($_shipment->getId(), $ceShipmentUpdate);
                 if(!$response->getSuccess())
                 {
-                    $this->logApiError($storeId, $response);
+                    $this->logApiError($response, $ceShipmentUpdate);
                     Mage::getModel('adminnotification/inbox')->addCritical($errorTitle, $errorMessage);
                     return false;
                 }
             }
             catch(Exception $e)
             {
-                Mage::log($e->getResponseBody());
-                Mage::logException($e);
+                $this->logException($e);
                 return false;
             }
 
@@ -431,24 +490,20 @@ class Tritac_ChannelEngine_Model_Observer
         try
         {
             $response = $shipmentApi->shipmentCreate($ceShipment);
-
             if(!$response->getSuccess())
             {
-                $this->logApiError($storeId, $response);
+                $this->logApiError($response, $ceShipment);
                 Mage::getModel('adminnotification/inbox')->addCritical($errorTitle, $errorMessage);
                 return false;
             }
 
-            $_channelShipment = Mage::getModel('channelengine/shipment')
-                ->setShipmentId($_shipment->getId());
+            $_channelShipment = Mage::getModel('channelengine/shipment')->setShipmentId($_shipment->getId());
             $_channelShipment->save();
-        
-            Mage::log("Shipment #{$_shipment->getId()} was placed successfully.");
         }
         catch(Exception $e)
         {
-            Mage::getModel('adminnotification/inbox')->addCritical($errorTitle, $errorMessage);
-            Mage::logException($e);
+            $this->logException($e);
+             Mage::getModel('adminnotification/inbox')->addCritical($errorTitle, $errorMessage);
             return false;
         }
 
@@ -468,14 +523,24 @@ class Tritac_ChannelEngine_Model_Observer
         {
             $returnApi = new ReturnApi($client);
             $lastUpdatedAt = new DateTime('-1 day');
-            $response = $returnApi->returnGetDeclaredByChannel($lastUpdatedAt);
 
-            if(!$response->getSuccess())
+            $response = null;
+
+            try
             {
-                $this->logApiError($storeId, $response);
+                $response = $returnApi->returnGetDeclaredByChannel($lastUpdatedAt);
+                if(!$response->getSuccess())
+                {
+                    $this->logApiError($response);
+                    continue;
+                }
+            }
+            catch (Exception $e)
+            {
+                $this->logException($e);
                 continue;
             }
-
+            
             if($response->getCount() == 0) continue;
 
             foreach($response->getContent() as $return)
