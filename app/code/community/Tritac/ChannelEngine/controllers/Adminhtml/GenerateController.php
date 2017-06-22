@@ -34,6 +34,26 @@ class Tritac_ChannelEngine_Adminhtml_GenerateController extends Mage_Adminhtml_C
         }
     }
 
+    public function logAction()
+    {
+        $logFile = Mage::getBaseDir('log') . '/' . 'channelengine.log';
+        if (!is_file($logFile) || !is_readable($logFile)) return;
+
+        $this->getResponse()
+            ->setHttpResponseCode(200)
+            ->setHeader('Cache-Control', 'must-revalidate, post-check=0, pre-check=0', true)
+            ->setHeader('Pragma', 'public', true)
+            ->setHeader('Content-type', 'application/force-download')
+            ->setHeader('Content-Length', filesize($logFile))
+            ->setHeader('Content-Disposition', 'attachment' . '; filename=' . basename($logFile));
+
+        $this->getResponse ()->clearBody();
+        $this->getResponse ()->sendHeaders();
+        readfile($logFile);
+
+        exit;
+    }
+
     private function returnStatus($error, $message)
     {
         $res = $this->getResponse();

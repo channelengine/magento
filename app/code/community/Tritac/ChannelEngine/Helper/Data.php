@@ -122,4 +122,9 @@ class Tritac_ChannelEngine_Helper_Data extends Mage_Core_Helper_Abstract {
         $expectedDate = date("Y-m-d", strtotime("{$weekdays} weekdays"));
         return new DateTime($expectedDate);
     }
+
+    public function getExtensionVersion()
+    {
+        return (string) Mage::getConfig()->getNode()->modules->Tritac_ChannelEngine->version;
+    }
 }

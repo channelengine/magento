@@ -65,4 +65,17 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Form_Button extends Mag
  
         return $button->toHtml();
     }
+
+    /**
+     * Render element
+     *
+     * @param  Varien_Data_Form_Element_Abstract $element
+     * @return string
+     */
+    public function render(Varien_Data_Form_Element_Abstract $element)
+    {
+        // Hide checkbox
+        $element->unsCanUseWebsiteValue()->unsCanUseDefaultValue()->unsScope();
+        return parent::render($element);
+    }
 }
