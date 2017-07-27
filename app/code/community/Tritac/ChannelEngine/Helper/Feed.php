@@ -17,6 +17,8 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$this->helper = Mage::helper('channelengine');
 		$this->stores = Mage::app()->getStores();
 		$this->config = $this->helper->getConfig();
+
+		Mage::app()->loadAreaPart(Mage_Core_Model_App_Area::AREA_FRONTEND, Mage_Core_Model_App_Area::PART_EVENTS);
 	}
 
 	/**
