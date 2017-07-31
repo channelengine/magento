@@ -49,6 +49,13 @@ class Tritac_ChannelEngine_Model_Observer
     protected $_helper = null;
 
     /**
+     * ChannelEngine helper
+     *
+     * @var Tritac_ChannelEngine_Helper_Feed
+     */
+    protected $_feedHelper = null;
+
+    /**
      * Whether this merchant uses the postNL extension
      *
      * @var bool
@@ -62,6 +69,7 @@ class Tritac_ChannelEngine_Model_Observer
     public function __construct()
     {
         $this->_helper = Mage::helper('channelengine');
+        $this->_feedHelper = Mage::helper('channelengine/feed');
         $this->_hasPostNL = Mage::helper('core')->isModuleEnabled('TIG_PostNL');
 
         $this->_config = $this->_helper->getConfig();
@@ -109,6 +117,11 @@ class Tritac_ChannelEngine_Model_Observer
         }
 
         $this->log($e->__toString(), Zend_Log::ERR);
+    }
+
+    public function generateFeeds()
+    {
+        $this->_feedHelper->generateFeeds();
     }
 
     /**

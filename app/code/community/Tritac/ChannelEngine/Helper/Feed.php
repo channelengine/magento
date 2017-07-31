@@ -69,7 +69,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$visibleAttributes = $attributesInfo['visibleAttributes'];
 		$systemAttributes = $attributesInfo['systemAttributes'];
 
-		$categories = $this->getCategories();
+		$categories = $this->getCategories($store);
 		$options = $this->getOptions();
 
 		// Make sure to create a new instance of our collection after setting the store ID
@@ -97,12 +97,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$collection->getSelect()
 			->joinLeft(
 				array('csi' => Mage::getSingleton('core/resource')->getTableName('cataloginventory/stock_item')),
-				'`e`.`entity_id` = `csi`.`product_id`',
-				array('qty' => 'COALESCE(`qty`, 0)')
+				'e.entity_id = csi.product_id',
+				array('qty' => 'COALESCE(qty, 0)')
 			)
 			->joinLeft(
-				array('ccp' => Mage::getSingleton('core/resource')->getTableName('catalog/category_product')),
-				'`e`.`entity_id` = `ccp`.`product_id`',
+				array('ccp' => Mage::getSingleton('core/resource')->getTableName('catalog/category_product_index')),
+				'e.entity_id = ccp.product_id AND ccp.store_id = ' . $storeId . ' AND is_parent = 1',
 				array('category_id' => 'MAX(`ccp`.`category_id`)')
 			)
 			->group('e.entity_id');
@@ -339,6 +339,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		}
 
 		// Prepare category path
+		$io->streamWrite('<CategoryId><![CDATA[' . $product['category_id'] . ']]></CategoryId>');
 		if(!empty($product['category_id']) && !empty($categories)) {
 			$categoryId = $product['category_id'];
 			$categoryPathIds = explode('/', $categories[$categoryId]['path']);
@@ -414,19 +415,23 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		);
 	}
 
-	private function getCategories()
+	private function getCategories($store)
 	{
 		$categoryArray = array();
-		$parent = Mage::app()->getWebsite(true)->getDefaultStore()->getRootCategoryId();
+		$parent = $store->getRootCategoryId();
 
-		$category = Mage::getModel('catalog/category');
+		$rootCategory = Mage::getModel('catalog/category')->load($parent);
 
-		if ($category->checkId($parent)) {
-			$storeCategories = $category->getCategories($parent, 0, true, true, true);
-			foreach($storeCategories as $_category) {
-				$categoryArray[$_category->getId()] = $_category->getData();
+		if ($rootCategory->getId())
+		{
+			$categoryArray[$rootCategory->getId()] = $rootCategory->getData();
+			$storeCategories = $rootCategory->getCategories($parent, 0, true, true, true);
+			foreach($storeCategories as $category)
+			{
+				$categoryArray[$category->getId()] = $category->getData();
 			}
 		}
+
 		return $categoryArray;
 	}
 

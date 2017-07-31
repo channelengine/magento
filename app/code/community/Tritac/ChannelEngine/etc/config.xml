@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Tritac_ChannelEngine>
-            <version>5.0.0</version>
+            <version>5.0.2</version>
         </Tritac_ChannelEngine>
     </modules>
 
@@ -195,7 +195,7 @@
                     <cron_expr>30 * * * *</cron_expr>
                 </schedule>
                 <run>
-                    <model>channelengine/feed::generateFeeds</model>
+                    <model>channelengine/observer::generateFeeds</model>
                 </run>
             </channelengine_generate_feed>
         </jobs>
