@@ -21,14 +21,6 @@ use ChannelEngine\ApiClient\Model\MerchantShipmentLineRequest;
 class Tritac_ChannelEngine_Model_Observer
 {
     /**
-     * To prevent exceeding the maximum number of allowed mySQL joins 
-     * when not using the flat catalog. 
-     *
-     * @var int
-     */
-    const ATTRIBUTES_LIMIT = 30;
-
-    /**
      * The CE logfile path
      *
      * @var string
@@ -57,6 +49,13 @@ class Tritac_ChannelEngine_Model_Observer
     protected $_helper = null;
 
     /**
+     * ChannelEngine helper
+     *
+     * @var Tritac_ChannelEngine_Helper_Feed
+     */
+    protected $_feedHelper = null;
+
+    /**
      * Whether this merchant uses the postNL extension
      *
      * @var bool
@@ -70,14 +69,16 @@ class Tritac_ChannelEngine_Model_Observer
     public function __construct()
     {
         $this->_helper = Mage::helper('channelengine');
+        $this->_feedHelper = Mage::helper('channelengine/feed');
         $this->_hasPostNL = Mage::helper('core')->isModuleEnabled('TIG_PostNL');
 
         $this->_config = $this->_helper->getConfig();
+        
         /**
          * Check required config parameters. Initialize API client.
          */
         foreach($this->_config as $storeId => $storeConfig) {
-            if($this->_helper->checkGeneralConfig($storeId)) {
+            if($this->_helper->isConnected($storeId)) {
                 $apiConfig = new Configuration();
 
                 $apiConfig->setApiKey('apikey', $storeConfig['general']['api_key']);
@@ -116,6 +117,11 @@ class Tritac_ChannelEngine_Model_Observer
         }
 
         $this->log($e->__toString(), Zend_Log::ERR);
+    }
+
+    public function generateFeeds()
+    {
+        $this->_feedHelper->generateFeeds();
     }
 
     /**
@@ -577,445 +583,6 @@ class Tritac_ChannelEngine_Model_Observer
                 Mage::getModel('adminnotification/inbox')->addCritical($title, $message);
             }
         }
-    }
-
-    /**
-     * Generate products feed for ChannelEngine
-     */
-    public function generateFeed()
-    {
-        @set_time_limit(15 * 60);
-        $start_memory = memory_get_usage();
-        
-        /**
-         * Prepare categories array
-         */
-        $categoryArray = array();
-        $parent = Mage::app()->getWebsite(true)->getDefaultStore()->getRootCategoryId();
-        $category = Mage::getModel('catalog/category');
-        if ($category->checkId($parent)) {
-            $storeCategories = $category->getCategories($parent, 0, true, true, true);
-            foreach($storeCategories as $_category) {
-                $categoryArray[$_category->getId()] = $_category->getData();
-            }
-        }
-
-        /**
-         * Prepare products relation
-         */
-//        $productsRelation = array();
-//        $_resource = Mage::getSingleton('core/resource');
-//        $_connection = $_resource->getConnection('core_read');
-//        $relations = $_connection->fetchAll("SELECT * FROM " . $_resource->getTableName('catalog/product_relation'));
-//        foreach($relations as $relation) {
-//            $productsRelation[$relation['child_id']] = $relation['parent_id'];
-//        }
-
-        /**
-         * Export products from each store.
-         * Note: products with undefined website id will not be export.
-         */
-        foreach(Mage::app()->getStores() as $_store)
-        {
-            Mage::app()->setCurrentStore($_store);           
-
-            $path = Mage::getBaseDir('media') . DS . 'channelengine' . DS;
-            $storeConfig = $this->_helper->getConfig($_store->getId());
-
-            if(!$this->_helper->checkGeneralConfig($_store->getId())) continue;
-
-            $name = $storeConfig['general']['tenant'].'_products.xml';
-            $file = $path . DS . $name;
-            $date = date('c');
-
-            $io = new Varien_Io_File();
-            $io->setAllowCreateFolders(true);
-            $io->open(array('path' => $path));
-            $io->streamOpen($file, 'w+');
-            $io->streamLock(true);
-            $io->streamWrite('<?xml version="1.0" encoding="UTF-8"?>' . "\n");
-            $io->streamWrite('<Products xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" GeneratedAt="'.$date.'">' . "\n");
-
-            /**
-             * Prepare custom options array
-             */
-            $storeId = $_store->getId();
-            $optionsArray = array();
-            $_options = Mage::getModel('catalog/product_option')
-                ->getCollection()
-                ->addTitleToResult($storeId)
-                ->addPriceToResult($storeId)
-                ->addValuesToResult($storeId)
-                ->setOrder('sort_order', 'asc');
-            foreach($_options as $_option) {
-                $productId = $_option->getProductId();
-                $optionId = $_option->getOptionId();
-                $optionsArray[$productId][$optionId] = $_option->getData();
-                if($_option->getType() == Mage_Catalog_Model_Product_Option::OPTION_TYPE_DROP_DOWN) {
-                    $optionsArray[$productId][$optionId]['values'] = $_option->getValues();
-                }
-            }
-
-            /**
-             * Retrieve product collection with all visible attributes
-             */
-            $collection = Mage::getResourceModel('catalog/product_collection');
-            $flatCatalogEnabled = $collection->isEnabledFlat();
-
-            // Make sure to create a new instance of our collection after setting the store ID
-            // when using the flat catalog. Otherwise store ID will be ignored. This is a bug in magento.
-            // https://magento.stackexchange.com/a/25908
-            if($flatCatalogEnabled)
-            {
-                // The flat product entity has a setStoreId method, the regular entity does not have one
-                $collection->getEntity()->setStoreId($storeId);
-                $collection = Mage::getResourceModel('catalog/product_collection');  
-            } 
-
-            $visibleAttributes = array();
-            $systemAttributes = array();
-            $attributesToSelect = array(
-                'sku',
-                'name',
-                'manufacturer',
-                'description',
-                'image',
-                'url_key',
-                'price',
-                'cost',
-                'special_price',
-                'special_from_date',
-                'special_to_date',
-                'visibility',
-                'msrp'
-            );
-
-            if(!empty($this->_config[$storeId]['general']['gtin'])) $attributesToSelect[] = $this->_config[$storeId]['general']['gtin'];
-            $attributes = Mage::getResourceModel('catalog/product_attribute_collection');
-
-            $totalAttributes = count($attributesToSelect);
-
-            foreach($attributes as $attribute)
-            {
-                $code = $attribute->getAttributeCode();
-                $isFlat = $flatCatalogEnabled && $attribute->getUsedInProductListing();
-                $isRegular = !$flatCatalogEnabled && $attribute->getIsVisible() && $attribute->getIsVisibleOnFront();
-
-                // Only allow a subset of system attributes
-                $isSystem = !$attribute->getIsUserDefined();
-
-                if(!$isFlat && !$isRegular || ($isRegular && $totalAttributes >= self::ATTRIBUTES_LIMIT)) continue;
-
-                $visibleAttributes[$code]['label'] = $attribute->getFrontendLabel();  
-                foreach($attribute->getSource()->getAllOptions(false) as $option)
-                {
-                    $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
-                }
-
-                if($isSystem)
-                {
-                    $systemAttributes[] = $code;
-                    continue;
-                }
-
-                if(in_array($code, $attributesToSelect)) continue;
-
-                $attributesToSelect[] = $code;
-                $totalAttributes++;
-            }
-
-            $collection->addAttributeToSelect($attributesToSelect, 'left')
-                ->addFieldToFilter('type_id', array('in' => array('simple')))
-                ->addStoreFilter($_store)
-                ->addAttributeToFilter('status', 1)
-                ->addAttributeToFilter('visibility', array('in' => array(
-                    Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_CATALOG,
-                    Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_SEARCH,
-                    Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH)))
-                ->addAttributeToSort('entity_id', 'DESC');
-
-            // Add qty and category fields to select
-            $collection->getSelect()
-                ->joinLeft(
-                    array('csi' => Mage::getSingleton('core/resource')->getTableName('cataloginventory/stock_item')),
-                    '`e`.`entity_id` = `csi`.`product_id`',
-                    array('qty' => 'COALESCE(`qty`, 0)')
-                )
-                ->joinLeft(
-                    array('ccp' => Mage::getSingleton('core/resource')->getTableName('catalog/category_product')),
-                    '`e`.`entity_id` = `ccp`.`product_id`',
-                    array('category_id' => 'MAX(`ccp`.`category_id`)')
-                )
-                ->group('e.entity_id');
-
-            Mage::getSingleton('core/resource_iterator')->walk(
-                $collection->getSelect(),
-                array(array($this, 'callbackGenerateFeed')),
-                array(
-                    'io'            => $io,
-                    'categories'    => $categoryArray,
-                    'attributes'    => $visibleAttributes,
-                    'systemAttributes' => $systemAttributes,
-                    'options'       => $optionsArray,
-                    'store'         => $_store,
-                    'startMemory'   => $start_memory,
-                )
-            );
-
-            $collection->clear()->getSelect()->reset('where');
-            $collection->addFieldToFilter('type_id', array('in' => array('configurable')))
-                ->addStoreFilter($_store)
-                ->addAttributeToFilter('status', 1)
-                ->addAttributeToSort('entity_id', 'DESC');
-
-            foreach($collection as $_product) {
-                $productAttributeOptions = $_product->getTypeInstance(true)->getConfigurableAttributesAsArray($_product);
-                $superAttributes = array();
-
-                foreach($productAttributeOptions as $superAttribute) {
-                    foreach($superAttribute['values'] as $value) {
-                        $superAttributes[$superAttribute['attribute_code']][$value['value_index']] = $value;
-                    }
-                }
-
-                $parentData = $_product->getData();
-                $parentData['id'] = $parentData['entity_id'];
-
-                $productModel = Mage::getModel('catalog/product');
-                $productModel->setData('entity_id', $parentData['entity_id']);
-                $productModel->setData('url_key', $parentData['url_key']);
-                $productModel->setData('store_id', $parentData['store_id']);
-
-                $parentData['url'] = $productModel->getProductUrl();
-
-                $specialPrice = $parentData['special_price'];
-                $specialFrom = $parentData['special_from_date'];
-                $specialTo = $parentData['special_to_date'];
-                $parentData['price'] = Mage::getModel('catalog/product_type_price')->calculateSpecialPrice($parentData['price'], $specialPrice, $specialFrom, $specialTo, $storeId);
-
-                $xml = $this->_getProductXml($parentData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
-
-                $childProductCollection = Mage::getModel('catalog/product_type_configurable')
-                    ->getUsedProductCollection($_product)
-                    ->addAttributeToSelect($attributesToSelect);
-
-                $_childProducts = $childProductCollection->getItems();
-
-
-                foreach($_childProducts as $_child) {
-                    $childData = $_child->getData();
-                    
-                    $childData['id'] = $childData['entity_id'];
-                    $childData['parent_id'] = $parentData['id'];
-                    $childData['price'] = $parentData['price'];
-                    $childData['url'] = $parentData['url'];
-                    $childData['description'] = $parentData['description'];
-                    
-                    if(isset($childData['stock_item']) && $childData['stock_item'] !== null) {
-                        $stock = $childData['stock_item']->getData();
-                        $childData['qty'] = $stock['qty'];
-                    }
-
-                    if(!isset($childData['image']) || $childData['image'] == 'no_slection') {
-                        $childData['image'] = $parentData['image'];
-                    }
-
-                    foreach($superAttributes as $code => $superAttribute) {
-                        if(isset($childData[$code])) {
-                            $priceValue = $superAttribute[$childData[$code]]['pricing_value'];
-                            if($superAttribute[$childData[$code]]['is_percent']) {
-                                $newPrice = $childData['price'] + $childData['price'] * $priceValue / 100;
-                            } else {
-                                $newPrice = $childData['price'] + $priceValue;
-                            }
-                            $childData['price'] = $newPrice;
-                        }
-                    }
-
-                    $xml .= $this->_getProductXml($childData, $categoryArray, array('systemAttributes' => $systemAttributes, 'attributes' => $visibleAttributes));
-                }
-                $io->streamWrite($xml);
-            }
-
-
-
-            $io->streamWrite('</Products>');
-            $io->streamUnlock();
-            $io->streamClose();
-        }
-
-        return true;
-    }
-
-    public function callbackGenerateFeed($args)
-    {
-        $io         = $args['io'];
-        $product    = $args['row'];
-        $attributes = $args['attributes'];
-        $systemAttributes = $args['systemAttributes'];
-        $categories = $args['categories'];
-        $options    = $args['options'];
-        $_store     = $args['store'];
-        $storeId    = $_store->getId();
-
-        $xml = '';
-
-        $product['store_id'] = $storeId;
-        if(!empty($this->_config[$storeId]['general']['gtin'])) {
-            $product['gtin'] = $product[$this->_config[$storeId]['general']['gtin']];
-        }
-
-        $specialPrice = $product['special_price'];
-        $specialFrom = $product['special_from_date'];
-        $specialTo = $product['special_to_date'];
-        $product['price'] = Mage::getModel('catalog/product_type_price')
-            ->calculateSpecialPrice($product['price'], $specialPrice, $specialFrom, $specialTo, $storeId);
-
-        $productModel = Mage::getModel('catalog/product');
-        $productModel->setData('entity_id', $product['entity_id']);
-        $productModel->setData('url_key', $product['url_key']);
-        $productModel->setData('store_id', $product['store_id']);
-        $product['url'] = $productModel->getProductUrl();
-
-        /**
-         * Add product custom options to feed.
-         * Each option value will generate new product row
-         */
-        $additional['systemAttributes'] = $systemAttributes;
-        $additional['attributes'] = $attributes;
-        if(isset($options[$product['entity_id']])) {
-            $product['group_code'] = $product['entity_id'];
-            foreach($options[$product['entity_id']] as $option) {
-                if(isset($option['values'])) {
-                    foreach($option['values'] as $_value) {
-                        $product['id'] = $product['entity_id'].'_'.$option['option_id'].'_'.$_value->getId();
-                        $additional['title'] = str_replace(' ', '_', $option['default_title']);
-                        $additional['value'] = $_value->getDefaultTitle();
-                        $xml .= $this->_getProductXml($product, $categories, $additional);
-                    }
-                } else {
-                    $product['id'] = $product['entity_id'].'_'.$option['option_id'];
-                    $additional['title'] = str_replace(' ', '_', $option['default_title']);
-                    $additional['value'] = '';
-                    $xml .= $this->_getProductXml($product, $categories, $additional);
-                }
-            }
-        }else {
-            $product['id'] = $product['entity_id'];
-            $xml .= $this->_getProductXml($product, $categories, $additional);
-        }
-
-        $io->streamWrite($xml);
-    }
-
-    protected function _getProductXml($product, $categories, $additional = null)
-    {
-        $xml = "<Product>";
-        $xml .= "<Id>".$product['id']."</Id>";
-
-        // Add group code with product id if product have custom options
-        if(isset($product['group_code'])) {
-            $xml .= "<GroupCode><![CDATA[".$product['group_code']."]]></GroupCode>";
-        }
-
-        if(isset($product['parent_id'])) {
-            $xml .= "<ParentId><![CDATA[".$product['parent_id']."]]></ParentId>";
-        }
-
-        $xml .= "<Type><![CDATA[".$product['type_id']."]]></Type>";
-        $xml .= "<Name><![CDATA[".$product['name']."]]></Name>";
-        $xml .= "<Description><![CDATA[".strip_tags($product['description'])."]]></Description>";
-        $xml .= "<Price><![CDATA[".$product['price']."]]></Price>";
-        $xml .= "<ListPrice><![CDATA[".$product['msrp']."]]></ListPrice>";
-        $xml .= "<PurchasePrice><![CDATA[".$product['cost']."]]></PurchasePrice>";
-
-        // Add product stock qty
-        $xml .= "<Stock><![CDATA[".$product['qty']."]]></Stock>";
-
-        // Add product SKU and GTIN
-        $xml .= "<SKU><![CDATA[".$product['sku']."]]></SKU>";
-        if(!empty($product['gtin'])) {
-            $xml .= "<GTIN><![CDATA[".$product['gtin']."]]></GTIN>";
-        }
-
-        // VAT and Shipping Time are pre configured in extension settings
-        if(!empty($this->_config[$product['store_id']]['optional']['vat_rate'])) {
-            $vat = $this->_config[$product['store_id']]['optional']['vat_rate'];
-            $xml .= "<VAT><![CDATA[".$vat."]]></VAT>";
-        }
-
-        $shippingTime = ($product['qty'] > 0) ? $this->_config[$product['store_id']]['optional']['shipping_time'] : $this->_config[$product['store_id']]['optional']['shipping_time_oos'];
-
-        if($shippingTime) {
-            $xml .= "<ShippingTime><![CDATA[".$shippingTime."]]></ShippingTime>";
-        }
-
-        $xml .= "<Url><![CDATA[".$product['url']."]]></Url>";
-
-        if(isset($product['image']) && $product['image'] != 'no_selection') {
-            $imgUrl = Mage::getSingleton('catalog/product_media_config')->getMediaUrl($product['image']);
-            $xml .= "<ImageUrl><![CDATA[".$imgUrl."]]></ImageUrl>";
-        }
-
-        // Prepare category path
-        if(!empty($product['category_id']) && !empty($categories)) {
-            $categoryId = $product['category_id'];
-            $categoryPathIds = explode('/', $categories[$categoryId]['path']);
-            $categoryPath = null;
-            foreach($categoryPathIds as $id) {
-                if($id > 2) {
-                    $categoryPath .= ($categoryPath) ? ' > ':'';
-                    $categoryPath .= $categories[$id]['name'];
-                }
-            }
-            if($categoryPath) {
-                $xml .= "<Category><![CDATA[".$categoryPath."]]></Category>";
-            }
-        }
-
-        if(isset($additional['title']) && isset($additional['value'])) {
-            $title = preg_replace("/[^a-zA-Z0-9]/", "", $additional['title']);
-            $xml .= sprintf("<%1\$s><![CDATA[%2\$s]]></%1\$s>",
-                $title,
-                $additional['value']
-            );
-        }
-
-        /*
-         * Prepare product visible attributes
-         */
-        if(isset($additional['attributes'])) {
-            $xml .= '<Attributes>';
-            foreach($additional['attributes'] as $code => $attribute) {
-
-                if(isset($product[$code]) && !in_array($code, $additional['systemAttributes'])) {
-                    $xml .= "<".$code.">";
-                    /*$xml .= "<label><![CDATA[".$attribute['label']."]]></label>";
-                    if(!empty($attribute['values'])) {
-                        $xml .= "<value><![CDATA[".$attribute['values'][$product[$code]]."]]></value>";
-                    } else {
-                        $xml .= "<value><![CDATA[".$product[$code]."]]></value>";
-                    }*/
-                    if(!empty($attribute['values'])) {
-                        $xml .= "<![CDATA[".$attribute['values'][$product[$code]]."]]>";
-                    } else {
-                        $xml .= "<![CDATA[".$product[$code]."]]>";
-                    }
-                    $xml .= "</".$code.">";
-                }
-            }
-            $xml .= '</Attributes>';
-        }
-
-        $xml .= "</Product>\n";
-
-        return $xml;
-    }
-
-    public function addConfigurableProducts($collection)
-    {
-
     }
 
     /**

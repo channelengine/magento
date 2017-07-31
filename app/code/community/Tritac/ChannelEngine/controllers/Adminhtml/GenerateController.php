@@ -3,8 +3,8 @@ class Tritac_ChannelEngine_Adminhtml_GenerateController extends Mage_Adminhtml_C
 {
     public function feedAction()
     {
-        $observer = Mage::getModel('channelengine/observer');
-        $result = $observer->generateFeed();
+        $feed = Mage::helper('channelengine/feed');
+        $result = $feed->generateFeeds();
         if($result) {
             $this->returnStatus(false, $result);
         } else {
