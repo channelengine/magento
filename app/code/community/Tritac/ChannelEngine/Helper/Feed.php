@@ -5,6 +5,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	private $helper;
 	private $feedDir;
 	private $stores;
+	private $config;
 
 	const ATTRIBUTES_LIMIT = 30;
 	
