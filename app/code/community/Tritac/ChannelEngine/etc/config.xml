@@ -67,6 +67,18 @@
                 </channelengine_order_line_id>
             </sales_convert_order_item>
         </fieldsets>
+
+        <events>
+            <sales_order_shipment_save_after>
+                <observers>
+                    <shipmentsave>
+                        <type>singleton</type>
+                        <class>channelengine/observer</class>
+                        <method>saveShipment</method>
+                    </shipmentsave>
+                </observers>
+            </sales_order_shipment_save_after>
+        </events>
     </global>
 
     <default>
@@ -121,15 +133,6 @@
 
     <adminhtml>
         <events>
-            <sales_order_shipment_save_after>
-                <observers>
-                    <shipmentsave>
-                        <type>singleton</type>
-                        <class>channelengine/observer</class>
-                        <method>saveShipment</method>
-                    </shipmentsave>
-                </observers>
-            </sales_order_shipment_save_after>
             <resource_get_tablename>
                 <observers>
                     <channelengine_composer_autoloader>
