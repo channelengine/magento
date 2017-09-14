@@ -28,19 +28,20 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	public function generateFeeds()
 	{
 		@set_time_limit(15 * 60);
-		
+
 		foreach($this->stores as $store)
 		{
-			$this->generateFeed($store, $categories);
+			$this->generateFeed($store);
 		}
 
 		return true;
 	}
 
-	public function generateFeed($store, $categoriesArray)
+	public function generateFeed($store)
 	{
 		Mage::app()->setCurrentStore($store);
 		$storeId = $store->getId();
+
 		$config = $this->config[$storeId];
 
 		if(!$this->helper->isConnected($storeId)) return;
@@ -55,7 +56,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 
 		$io = new Varien_Io_File();
 		$io->setAllowCreateFolders(true);
-		$io->open(array('path' => $path));
+		$io->open(array('path' => $this->feedDir));
 		$io->streamOpen($file, 'w+');
 		$io->streamLock(true);
 		$io->streamWrite('<?xml version="1.0" encoding="UTF-8"?>' . "\n");
@@ -71,7 +72,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$systemAttributes = $attributesInfo['systemAttributes'];
 
 		$categories = $this->getCategories($store);
-		$options = $this->getOptions();
+		$options = $this->getOptions($storeId);
 
 		// Make sure to create a new instance of our collection after setting the store ID
 		// when using the flat catalog. Otherwise store ID will be ignored. This is a bug in magento.
@@ -105,6 +106,11 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				array('ccp' => Mage::getSingleton('core/resource')->getTableName('catalog/category_product_index')),
 				'e.entity_id = ccp.product_id AND ccp.store_id = ' . $storeId . ' AND is_parent = 1',
 				array('category_id' => 'MAX(`ccp`.`category_id`)')
+			)
+			->joinInner(
+				array('cce' => Mage::getSingleton('core/resource')->getTableName('catalog_category_entity')),
+				'cce.entity_id = ccp.category_id AND cce.path LIKE ' . "'%/" . $store->getRootCategoryId() . "/%'",
+				array()
 			)
 			->group('e.entity_id');
 
@@ -156,7 +162,8 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 
 		$additional = array(
 			'systemAttributes' => $systemAttributes,
-			'attributes' => $attributes
+			'attributes' => $attributes,
+			'store' => $store
 		);
 
 
@@ -286,6 +293,9 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 
 	private function writeProduct($io, $product, $categories, $additional = null)
 	{
+		$store = $additional['store'];
+		$storeId = $store->getId();
+
 		$io->streamWrite('<Product>');
 		$io->streamWrite('<Id>' . $product['id'] . '</Id>');
 
@@ -303,7 +313,9 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$io->streamWrite('<Description><![CDATA['. $this->stripHtml($product['description']) . ']]></Description>');
 		$io->streamWrite('<Price><![CDATA['. $product['price'] . ']]></Price>');
 		$io->streamWrite('<ListPrice><![CDATA[' . $product['msrp'] . ']]></ListPrice>');
-		$io->streamWrite('<PurchasePrice><![CDATA[' . $product['cost'] . ']]></PurchasePrice>');
+		if(isset($product['cost'])) {
+			$io->streamWrite('<PurchasePrice><![CDATA[' . $product['cost'] . ']]></PurchasePrice>');
+		}
 
 		// Add product stock qty
 		$io->streamWrite('<Stock><![CDATA[' . $product['qty'] . ']]></Stock>');
@@ -315,12 +327,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		}
 
 		// VAT and Shipping Time are pre configured in extension settings
-		if(!empty($this->_config[$product['store_id']]['optional']['vat_rate'])) {
-			$vat = $this->_config[$product['store_id']]['optional']['vat_rate'];
+		if(!empty($this->config[$storeId]['optional']['vat_rate'])) {
+			$vat = $this->config[$storeId]['optional']['vat_rate'];
 			$io->streamWrite('<VAT><![CDATA[".$vat."]]></VAT>');
 		}
 
-		$shippingTime = ($product['qty'] > 0) ? $this->_config[$product['store_id']]['optional']['shipping_time'] : $this->_config[$product['store_id']]['optional']['shipping_time_oos'];
+		$shippingTime = ($product['qty'] > 0) ? $this->config[$storeId]['optional']['shipping_time'] : $this->config[$storeId]['optional']['shipping_time_oos'];
 
 		if($shippingTime) {
 			$io->streamWrite('<ShippingTime><![CDATA[' . $shippingTime . ']]></ShippingTime>');
@@ -340,19 +352,23 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		}
 
 		// Prepare category path
-		$io->streamWrite('<CategoryId><![CDATA[' . $product['category_id'] . ']]></CategoryId>');
-		if(!empty($product['category_id']) && !empty($categories)) {
+		//$io->streamWrite('<CategoryId><![CDATA[' . $product['category_id'] . ']]></CategoryId>');
+		if(isset($product['category_id'])) {
 			$categoryId = $product['category_id'];
-			$categoryPathIds = explode('/', $categories[$categoryId]['path']);
-			$categoryPath = null;
-			foreach($categoryPathIds as $id) {
-				if($id > 2) {
-					$categoryPath .= ($categoryPath) ? ' > ':'';
-					$categoryPath .= $categories[$id]['name'];
+			if(isset($categories[$categoryId])) {
+				$categoryPathIds = explode('/', $categories[$categoryId]['path']);
+				$categoryPath = null;
+
+				foreach($categoryPathIds as $id) {
+					if($id != $store->getRootCategoryId()) {
+						$categoryPath .= !empty($categoryPath) ? ' > ' : '';
+						$categoryPath .= $categories[$id]['name'];
+					}
 				}
-			}
-			if($categoryPath) {
-				$io->streamWrite('<Category><![CDATA[' . $categoryPath . ']]></Category>');
+				
+				if($categoryPath) {
+					$io->streamWrite('<Category><![CDATA[' . $categoryPath . ']]></Category>');
+				}
 			}
 		}
 
@@ -436,7 +452,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		return $categoryArray;
 	}
 
-	private function getOptions()
+	private function getOptions($storeId)
 	{
 		$optionsArray = array();
 		$options = Mage::getModel('catalog/product_option')
