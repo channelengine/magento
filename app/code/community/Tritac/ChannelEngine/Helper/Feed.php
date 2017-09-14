@@ -360,12 +360,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				$categoryPath = null;
 
 				foreach($categoryPathIds as $id) {
-					if($id != $store->getRootCategoryId()) {
+					if($id > 1 && $id != $store->getRootCategoryId()) {
 						$categoryPath .= !empty($categoryPath) ? ' > ' : '';
 						$categoryPath .= $categories[$id]['name'];
 					}
 				}
-				
+
 				if($categoryPath) {
 					$io->streamWrite('<Category><![CDATA[' . $categoryPath . ']]></Category>');
 				}
