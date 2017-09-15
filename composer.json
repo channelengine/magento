@@ -1,0 +1,15 @@
+{
+  "name": "channelengine/magento",
+  "description": "ChannelEngine Magento",
+  "license": "proprietary",
+  "authors": [
+      {
+          "name": "Christiaan de Ridder",
+          "email": "christiaan@channelengine.com"
+      }
+  ],
+  "require": {
+    "channelengine/api-client-php": "^2.1",
+  },
+  "type": "magento-module"
+}
