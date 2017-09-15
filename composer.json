@@ -9,7 +9,7 @@
       }
   ],
   "require": {
-    "channelengine/api-client-php": "^2.1",
+    "channelengine/api-client-php": "^2.1"
   },
   "type": "magento-module"
 }
