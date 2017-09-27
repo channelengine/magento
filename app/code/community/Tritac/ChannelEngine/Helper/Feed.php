@@ -12,8 +12,8 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	public function __construct()
 	{
 		$this->feedDir = Mage::getBaseDir('media') . DS . 'channelengine' . DS;
-		$this->stores = [];
-		$this->config = [];
+		$this->stores = array();
+		$this->config = array();
 
 		$this->helper = Mage::helper('channelengine');
 		$this->stores = Mage::app()->getStores();

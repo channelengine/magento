@@ -470,7 +470,7 @@ class Tritac_ChannelEngine_Model_Observer
         }
 
         // Add the shipment lines
-        $ceShipmentLines = [];
+        $ceShipmentLines = array();
         foreach($_shipment->getAllItems() as $_shipmentItem)
         {  
             // Get the quantity for this shipment

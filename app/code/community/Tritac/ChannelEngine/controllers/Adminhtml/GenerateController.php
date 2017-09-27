@@ -1,6 +1,11 @@
 <?php
 class Tritac_ChannelEngine_Adminhtml_GenerateController extends Mage_Adminhtml_Controller_Action
 {
+    protected function _isAllowed()
+    {
+        return Mage::getSingleton('admin/session')->isAllowed('system/config');
+    }
+
     public function feedAction()
     {
         $feed = Mage::helper('channelengine/feed');
@@ -50,8 +55,6 @@ class Tritac_ChannelEngine_Adminhtml_GenerateController extends Mage_Adminhtml_C
         $this->getResponse ()->clearBody();
         $this->getResponse ()->sendHeaders();
         readfile($logFile);
-
-        exit;
     }
 
     private function returnStatus($error, $message)
