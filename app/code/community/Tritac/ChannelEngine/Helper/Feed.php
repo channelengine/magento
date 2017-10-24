@@ -360,7 +360,10 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				$categoryPath = null;
 
 				foreach($categoryPathIds as $id) {
-					if($id > 1 && $id != $store->getRootCategoryId()) {
+					if($id > 1
+						&& $id != $store->getRootCategoryId()
+						&& isset($categories[$id])
+					) {
 						$categoryPath .= !empty($categoryPath) ? ' > ' : '';
 						$categoryPath .= $categories[$id]['name'];
 					}
