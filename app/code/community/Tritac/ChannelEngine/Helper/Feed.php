@@ -393,21 +393,20 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 
 			foreach($additional['attributes'] as $code => $attribute)
 			{
-
 				if(isset($product[$code]) && !in_array($code, $additional['systemAttributes']))
 				{
-					$io->streamWrite('<' . $code . '>');
-
+					$value = $product[$code];
 					if(!empty($attribute['values']))
 					{
-						$io->streamWrite('<![CDATA[' . $attribute['values'][$product[$code]] . ']]>');
-					}
-					else
-					{
-						$io->streamWrite('<![CDATA[' . $product[$code] . ']]>');
+						$valueList = [];
+						foreach (explode(',', $value) as $key)
+						{
+							$valueList[] = $attribute['values'][$key];
+						}
+						$value = implode(', ', $valueList);
 					}
 
-					$io->streamWrite('</' . $code . '>');
+					$io->streamWrite('<' . $code . '><![CDATA[' . $value . ']]></' . $code . '>');
 				}
 			}
 			$io->streamWrite('</Attributes>');
