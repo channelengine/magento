@@ -583,6 +583,8 @@ class Tritac_ChannelEngine_Model_Observer
                 Mage::getModel('adminnotification/inbox')->addCritical($title, $message);
             }
         }
+        
+        return true;
     }
 
     /**
