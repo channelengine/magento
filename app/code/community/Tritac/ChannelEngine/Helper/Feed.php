@@ -398,7 +398,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 					$value = $product[$code];
 					if(!empty($attribute['values']))
 					{
-						$valueList = [];
+						$valueList = array();
 						foreach (explode(',', $value) as $key)
 						{
 							$valueList[] = $attribute['values'][$key];
