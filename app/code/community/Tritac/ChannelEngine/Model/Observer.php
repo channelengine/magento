@@ -426,9 +426,13 @@ class Tritac_ChannelEngine_Model_Observer
 
         if(count($trackingCodes) > 0)
         {
+            // CE supports one tracking code per shipment. When a shipment has multiple codes, take the first one.
             $trackingCode = $trackingCodes[0];
+            $carrierCode = $trackingCode->getCarrierCode();
+            $title = $trackingCode->getTitle();
+
             $ceShipment->setTrackTraceNo($trackingCode->getNumber());
-            $ceShipment->setMethod(($trackingCode->getCarrierCode() == 'custom') ? $trackingCode->getTitle() : $trackingCode->getCarrierCode());      
+            $ceShipment->setMethod(($carrierCode == 'custom' || $carrierCode == 'paazl') ? $title : $carrierCode);
         }
 
         // Post NL support, in case of a leter box parcel, we can safely omit the tracking code.
