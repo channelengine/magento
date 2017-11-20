@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Tritac_ChannelEngine>
-            <version>5.2.1</version>
+            <version>5.3.0</version>
         </Tritac_ChannelEngine>
     </modules>
 
@@ -55,19 +55,6 @@
                 </connection>
             </channelengine_write>
         </resources>
-        <fieldsets>
-            <sales_convert_quote_item>
-                <channelengine_order_line_id>
-                    <to_order_item>*</to_order_item>
-                </channelengine_order_line_id>
-            </sales_convert_quote_item>
-            <sales_convert_order_item>
-                <channelengine_order_line_id>
-                    <to_quote_item>*</to_quote_item>
-                </channelengine_order_line_id>
-            </sales_convert_order_item>
-        </fieldsets>
-
         <events>
             <sales_order_shipment_save_after>
                 <observers>

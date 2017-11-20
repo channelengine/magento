@@ -213,9 +213,6 @@ class Tritac_ChannelEngine_Model_Observer
                         $_quoteItem->setOriginalCustomPrice($price);
                         $_quoteItem->setCustomPrice($price);
                         $_quoteItem->getProduct()->setIsSuperMode(true);
-                        $_quoteItem->setChannelengineOrderLineId($item->getChannelProductNo());
-
-
                     }
                     catch (Exception $e)
                     {
