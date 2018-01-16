@@ -592,7 +592,7 @@ class Tritac_ChannelEngine_Model_Observer
      *
      * @param $observer
      */
-    public function prepareOrderGridCollection($observer)
+    /*public function prepareOrderGridCollection($observer)
     {
         $collection = $observer->getOrderGridCollection();
         $joinTableName = Mage::getSingleton('core/resource')->getTableName('channelengine/order');
@@ -601,7 +601,7 @@ class Tritac_ChannelEngine_Model_Observer
             'channel_order_table.order_id = main_table.entity_id',
             array('channel_name', 'channel_order_id')
         );
-    }
+    }*/
 
     /**
      * Add channelengine order fields to adminhtml order grid
@@ -609,7 +609,7 @@ class Tritac_ChannelEngine_Model_Observer
      * @param $observer
      * @return $this
      */
-    public function appendCustomColumnToOrderGrid($observer)
+    /*public function appendCustomColumnToOrderGrid($observer)
     {
         $block = $observer->getBlock();
         if (!isset($block)) {
@@ -631,5 +631,5 @@ class Tritac_ChannelEngine_Model_Observer
                 'index' => 'channel_name',
             ), 'real_order_id');
         }
-    }
+    }*/
 }
