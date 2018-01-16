@@ -68,7 +68,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 
 		$attributesInfo = $this->getAttributes($storeId, $flatCatalogEnabled);
 		$attributesToSelect = $attributesInfo['attributesToSelect'];
-		$visibleAttributes = $attributesInfo['visibleAttributes'];
+		$customAttributes = $attributesInfo['customAttributes'];
 		$systemAttributes = $attributesInfo['systemAttributes'];
 
 		$categories = $this->getCategories($store);
@@ -115,7 +115,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 			->group('e.entity_id');
 
 		// Iterate all simple products, except the invisible ones (they are most probably children of configurable products)
-		$this->iterateProductCollection($io, $categories, $visibleAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $collection->getSelect(), false);
+		$this->iterateProductCollection($io, $categories, $customAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $collection->getSelect(), false);
 
 		// Update the query to select configurable products
 		$collection->clear()->getSelect()->reset('where');
@@ -128,7 +128,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH)))
 			->addAttributeToSort('entity_id', 'DESC');
 
-		$this->iterateProductCollection($io, $categories, $visibleAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $collection->getSelect(), true);
+		$this->iterateProductCollection($io, $categories, $customAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $collection->getSelect(), true);
 
 		$io->streamWrite('</Products>');
 		$io->streamUnlock();
@@ -141,7 +141,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	{
 		$io = $args['io'];
 		$row = $args['row'];
-		$attributes = $args['visibleAttributes'];
+		$customAttributes = $args['customAttributes'];
 		$systemAttributes = $args['systemAttributes'];
 		$attributesToSelect = $args['attributesToSelect'];
 		$categories = $args['categories'];
@@ -160,76 +160,62 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$mediaGalleryBackend = $mediaGalleryAttr->getBackend();
 		$mediaGalleryBackend->afterLoad($product); 
 
-		$additional = array(
-			'systemAttributes' => $systemAttributes,
-			'attributes' => $attributes,
-			'store' => $store
-		);
-
-
 		$productData = $product->getData();
 		if(!empty($config['general']['gtin'])) $productData['gtin'] = $productData[$config['general']['gtin']];
 		$productData['url'] = $product->getProductUrl();
 		$productData['images'] = $product->getMediaGalleryImages();
 		$productData['price'] = $product->getFinalPrice();
 
+		// Check whether this product has option variants
 		if(isset($options[$productData['entity_id']]))
 		{
 			$productData['parent_id'] = $productData['entity_id'];
+			$options = $options[$productData['entity_id']];
+			$variantProducts = array();
+			$requiredOptionCount = 0;
 
-			foreach($options[$productData['entity_id']] as $option)
+			foreach($options as $option)
 			{
-				if(isset($option['values']))
+				// We can only support options with predefined values and convert them to separate products
+				// since most marketplaces don't support customization.
+				
+				// More than 1 required predefined value option, skip this product
+				if($requiredOptionCount > 1) return;
+
+				if($option->getType() != Mage_Catalog_Model_Product_Option::OPTION_TYPE_DROP_DOWN &&
+					$option->getType() != Mage_Catalog_Model_Product_Option::OPTION_TYPE_RADIO)
 				{
-					foreach($option['values'] as $value)
-					{
-						$variantData = $productData;
-						$variantData['id'] = $variantData['entity_id'] . '_' . $option['option_id'] . '_' . $value->getId();
-
-						if(isset($value['price']))
-						{
-							if($value['price_type'] == 'fixed')
-							{
-								$variantData['price'] = $variantData['price'] + $value['price'];
-							}
-							elseif($value['price_type'] == 'percent')
-							{
-								$variantData['price'] = $variantData['price'] + ($variantData['price'] * $value['price'] / 100);
-							}
-						}
-
-						$additional['title'] = str_replace(' ', '_', $option['default_title']);
-						$additional['value'] = $value->getDefaultTitle();
-
-						$this->writeProduct($io, $variantData, $categories, $additional);
-					}
+					// A required variable value attribute, skip this product
+					if($option->getRequired()) return;
+					// An optional variable value attribute, ignore it
+					continue;	
 				}
-				else
+				elseif($option->getRequired()) 
+				{
+					// A required predefined value option, add to requiredOptionCount
+					$requiredOptionCount++;
+				}
+				
+				foreach($option->getValues() as $value)
 				{
 					$variantData = $productData;
-					$variantData['id'] = $variantData['entity_id'] . '_' . $option['option_id'];
-					$additional['title'] = str_replace(' ', '_', $option['default_title']);
-					$additional['value'] = '';
-					if(isset($option['price']))
-					{
-						if($option['price_type'] == 'fixed')
-						{
-							$variantData['price'] = $variantData['price'] + $option['price'];
-						}
-						elseif($option['price_type'] == 'percent')
-						{
-							$variantData['price'] = $variantData['price'] + ($variantData['price'] * $option['price'] / 100);
-						}
-					}
-					$this->writeProduct($io, $variantData, $categories, $additional);
+					$variantData['id'] = $variantData['entity_id'] . '_' . $option['option_id'] . '_' . $value->getId();
+
+					if(isset($value['price'])) $variantData['price'] = $this->getOptionPrice($value, $variantData);
+
+					$optionAttribute = array(
+						'name' => preg_replace('/[^a-zA-Z0-9]/', '', str_replace(' ', '_', $option['default_title'])),
+						'value' => $value->getDefaultTitle()
+					);
+
+					$this->writeProduct($io, $store, $variantData, $categories, $customAttributes, $systemAttributes, $optionAttribute);
 				}
 			}
 		}
 		else
 		{
 			$productData['id'] = $productData['entity_id'];
-
-			$this->writeProduct($io, $productData, $categories, $additional);
+			$this->writeProduct($io, $store, $productData, $categories, $customAttributes, $systemAttributes);
 		}
 
 		if(!$isConfigurable) return;
@@ -292,46 +278,43 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				}
 			}
 
-			$this->writeProduct($io, $childData, $categories, $additional);
+			$this->writeProduct($io, $store, $childData, $categories, $customAttributes, $systemAttributes);
 		}
 	}
 
-	private function writeProduct($io, $product, $categories, $additional = null)
+	private function getOptionPrice($option, $variantData)
 	{
-		$store = $additional['store'];
+		if($option['price_type'] == 'fixed') return $variantData['price'] + $option['price'];
+		if($option['price_type'] == 'percent') return $variantData['price'] + ($variantData['price'] * $option['price'] / 100);
+	}
+
+	private function writeProduct($io, $store, $product, $categories, $customAttributes, $systemAttributes, $optionAttribute = null)
+	{
 		$storeId = $store->getId();
 
 		$io->streamWrite('<Product>');
 		$io->streamWrite('<Id>' . $product['id'] . '</Id>');
 
 		// Add group code with product id if product have custom options
-		if(isset($product['group_code'])) {
-			$io->streamWrite('<GroupCode><![CDATA[' . $product['group_code'] . ']]></GroupCode>');
-		}
-
-		if(isset($product['parent_id'])) {
-			$io->streamWrite('<ParentId><![CDATA[' . $product['parent_id'] . ']]></ParentId>');
-		}
+		if(isset($product['group_code'])) $io->streamWrite('<GroupCode><![CDATA[' . $product['group_code'] . ']]></GroupCode>');
+		if(isset($product['parent_id'])) $io->streamWrite('<ParentId><![CDATA[' . $product['parent_id'] . ']]></ParentId>');
 
 		$io->streamWrite('<Type><![CDATA[' . $product['type_id'] . ']]></Type>');
 		$io->streamWrite('<Name><![CDATA[' . $product['name'] . ']]></Name>');
 		$io->streamWrite('<Description><![CDATA['. $this->stripHtml($product['description']) . ']]></Description>');
+		$io->streamWrite('<ShortDescription><![CDATA['. $this->stripHtml($product['short_description']) . ']]></ShortDescription>');
+		$io->streamWrite('<Manufacturer><![CDATA[' . $product['manufacturer'] . ']]></Manufacturer>');
 		$io->streamWrite('<Price><![CDATA['. $product['price'] . ']]></Price>');
 		$io->streamWrite('<ListPrice><![CDATA[' . $product['msrp'] . ']]></ListPrice>');
-		if(isset($product['cost']))
-		{
-			$io->streamWrite('<PurchasePrice><![CDATA[' . $product['cost'] . ']]></PurchasePrice>');
-		}
+
+		if(isset($product['cost'])) $io->streamWrite('<PurchasePrice><![CDATA[' . $product['cost'] . ']]></PurchasePrice>');
 
 		// Add product stock qty
 		$io->streamWrite('<Stock><![CDATA[' . $product['qty'] . ']]></Stock>');
 
 		// Add product SKU and GTIN
 		$io->streamWrite('<SKU><![CDATA[' . $product['sku'] . ']]></SKU>');
-		if(!empty($product['gtin']))
-		{
-			$io->streamWrite('<GTIN><![CDATA[' . $product['gtin'] . ']]></GTIN>');
-		}
+		if(!empty($product['gtin'])) $io->streamWrite('<GTIN><![CDATA[' . $product['gtin'] . ']]></GTIN>');
 
 		// VAT and Shipping Time are pre configured in extension settings
 		if(!empty($this->config[$storeId]['optional']['vat_rate']))
@@ -383,53 +366,43 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 					}
 				}
 
-				if($categoryPath) {
-					$io->streamWrite('<Category><![CDATA[' . $categoryPath . ']]></Category>');
-				}
+				if($categoryPath) $io->streamWrite('<Category><![CDATA[' . $categoryPath . ']]></Category>');
 			}
 		}
 
-		if(isset($additional['title']) && isset($additional['value']))
-		{
-			$title = preg_replace("/[^a-zA-Z0-9]/", "", $additional['title']);
-			$io->streamWrite(sprintf("<%1\$s><![CDATA[%2\$s]]></%1\$s>",
-				$title,
-				$additional['value']
-			));
-		}
+		if($optionAttribute !== null) $io->streamWrite('<OptionAttribute name="'.$optionAttribute['name'].'"><![CDATA[' . $optionAttribute['value'] . ']]></OptionAttribute>');
 
-		/*
-		 * Prepare product visible attributes
-		 */
-		if(isset($additional['attributes']))
-		{
-			$io->streamWrite('<Attributes>');
-
-			foreach($additional['attributes'] as $code => $attribute)
-			{
-				if(isset($product[$code]) && !in_array($code, $additional['systemAttributes']))
-				{
-					$value = $product[$code];
-					if(!empty($attribute['values']))
-					{
-						$valueList = array();
-						foreach (explode(',', $value) as $key)
-						{
-							$valueList[] = $attribute['values'][$key];
-						}
-						$value = implode(', ', $valueList);
-					}
-
-					$io->streamWrite('<' . $code . '><![CDATA[' . $value . ']]></' . $code . '>');
-				}
-			}
-			$io->streamWrite('</Attributes>');
-		}
+		$this->writeAttributes($io, $product, $customAttributes, 'Attributes');
+		$this->writeAttributes($io, $product, $systemAttributes, 'SystemAttributes');
 
 		$io->streamWrite('</Product>');
 	}
 
-	private function iterateProductCollection($io, $categories, $visibleAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $select, $isConfigurable)
+	private function writeAttributes($io, $product, $attributes, $elementName)
+	{
+		$io->streamWrite('<'.$elementName.'>');
+		foreach($attributes as $code => $attribute)
+		{
+			if(!isset($product[$code])) continue;
+
+			$value = $product[$code];
+
+			if(!empty($attribute['values']))
+			{
+				$valueList = array();
+				foreach (explode(',', $value) as $key)
+				{
+					$valueList[] = $attribute['values'][$key];
+				}
+				$value = implode(', ', $valueList);
+			}
+
+			$io->streamWrite('<' . $code . '><![CDATA[' . $value . ']]></' . $code . '>');
+		}
+		$io->streamWrite('</'.$elementName.'>');
+	}
+
+	private function iterateProductCollection($io, $categories, $customAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $select, $isConfigurable)
 	{
 		Mage::getSingleton('core/resource_iterator')->walk(
 			$select,
@@ -437,7 +410,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 			array(
 				'io'            => $io,
 				'categories'    => $categories,
-				'visibleAttributes'    => $visibleAttributes,
+				'customAttributes'    => $customAttributes,
 				'systemAttributes' => $systemAttributes,
 				'attributesToSelect' => $attributesToSelect,
 				'options'       => $options,
@@ -478,66 +451,80 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 			->addValuesToResult($storeId)
 			->setOrder('sort_order', 'asc');
 
-		foreach($options as $options)
+		foreach($options as $option)
 		{
-			$productId = $options->getProductId();
-			$optionId = $options->getOptionId();
-			$optionsArray[$productId][$optionId] = $options->getData();
-			if($options->getType() == Mage_Catalog_Model_Product_Option::OPTION_TYPE_DROP_DOWN)
+			$productId = $option->getProductId();
+			$optionId = $option->getOptionId();
+			$optionsArray[$productId][$optionId] = $option;
+
+			/*if($option->getType() == Mage_Catalog_Model_Product_Option::OPTION_TYPE_DROP_DOWN ||
+				$option->getType() == Mage_Catalog_Model_Product_Option::OPTION_TYPE_RADIO)
 			{
-				$optionsArray[$productId][$optionId]['values'] = $options->getValues();
-			}
+				//$optionsArray[$productId][$optionId]['values'] = 
+			}*/
 		}
 		return $optionsArray;
 	}
 
 	private function getAttributes($storeId, $flatCatalogEnabled)
 	{
-		$visibleAttributes = array();
-	    $systemAttributes = array();
+		$customAttributes = array();
+		$systemAttributes = array();
+	    $attributesToSelect = array();
 
-	    $attributesToSelect = array(
+	    $mappedSystemAttributes = array(
 	        'sku',
 	        'name',
 	        'manufacturer',
 	        'description',
-	        'image',
-	        'url_key',
+	        'short_description',
 	        'price',
 	        'cost',
-	        'special_price',
-	        'special_from_date',
-	        'special_to_date',
 	        'visibility',
 	        'msrp'
 	    );
 
-	    if(!empty($this->config[$storeId]['general']['gtin'])) $attributesToSelect[] = $this->config[$storeId]['general']['gtin'];
-	    $attributes = Mage::getResourceModel('catalog/product_attribute_collection');
+	    $hiddenSystemAttributes = array(
+	    	'msrp_display_actual_price_type',
+	    	'msrp_enabled',
+	    	'required_options',
+	    	'special_price',
+	        'special_from_date',
+	        'special_to_date',
+	        'image',
+	        'url_key',
+	        'small_image',
+	        'thumbnail'
+	    );
 
+	    if(!empty($this->config[$storeId]['general']['gtin']))
+	    {
+	    	$gtinAttr = $this->config[$storeId]['general']['gtin'];
+	    	$attributesToSelect[] = $gtinAttr;
+	    }
+
+	    $attributesToSelect = $mappedSystemAttributes;
 	    $totalAttributes = count($attributesToSelect);
+	    $attributes = Mage::getResourceModel('catalog/product_attribute_collection');
 
 	    foreach($attributes as $attribute)
 	    {
 	        $code = $attribute->getAttributeCode();
 	        $isFlat = $flatCatalogEnabled && $attribute->getUsedInProductListing();
 	        $isRegular = !$flatCatalogEnabled && $attribute->getIsVisible() && $attribute->getIsVisibleOnFront();
-
-	        // Only allow a subset of system attributes
 	        $isSystem = !$attribute->getIsUserDefined();
 
-	        if(!$isFlat && !$isRegular || ($isRegular && $totalAttributes >= self::ATTRIBUTES_LIMIT)) continue;
+	        // When the flat catalog is disabled, we are tied to a mysql join limit
+	        if(!$isFlat && !$isRegular || ($isRegular && $totalAttributes >= self::ATTRIBUTES_LIMIT)) continue;	        
 
-	        $visibleAttributes[$code]['label'] = $attribute->getFrontendLabel();  
-	        foreach($attribute->getSource()->getAllOptions(false) as $option)
+	        // Do not include system attributes that have already been mapped to specific CE fields separately
+	        if($isSystem && !in_array($code, $mappedSystemAttributes) && !in_array($code, $hiddenSystemAttributes))
 	        {
-	            $visibleAttributes[$code]['values'][$option['value']] = $option['label'];
-	        }
-
-	        if($isSystem)
+	        	$this->addAttributesToLookup($systemAttributes, $attribute, $code);
+	        } 
+	        elseif(!$isSystem)
 	        {
-	            $systemAttributes[] = $code;
-	            continue;
+	        	$this->addAttributesToLookup($customAttributes, $attribute, $code);
 	        }
 
 	        if(in_array($code, $attributesToSelect)) continue;
@@ -546,11 +533,20 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	        $totalAttributes++;
 	    }
 
-	    return array(
+		return array(
 	    	'systemAttributes' => $systemAttributes,
-	    	'visibleAttributes' => $visibleAttributes,
+	    	'customAttributes' => $customAttributes,
 	    	'attributesToSelect' => $attributesToSelect
 	    );
+	}
+
+	private function addAttributesToLookup(&$lookup, $attribute, $code)
+	{
+		$lookup[$code]['label'] = $attribute->getFrontendLabel();  
+        foreach($attribute->getSource()->getAllOptions(false) as $option)
+        {
+            $lookup[$code]['values'][$option['value']] = $option['label'];
+        }
 	}
 
 	private function stripHtml($string)
