@@ -260,13 +260,15 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 			$childData['url'] = $productData['url'];
 			$childData['description'] = $productData['description'];
 
-			if(!isset($childData['images'])) {
+			if(!isset($childData['images']))
+			{
 				$childData['images'] = $productData['images'];
 			} 
 
 			if(!isset($childData['category_id'])) $childData['category_id'] = $productData['category_id'];
 
-			if(isset($childData['stock_item']) && $childData['stock_item'] !== null) {
+			if(isset($childData['stock_item']) && $childData['stock_item'] !== null)
+			{
 				$stock = $childData['stock_item']->getData();
 				$childData['qty'] = $stock['qty'];
 			}
@@ -278,9 +280,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				if(isset($childData[$code]))
 				{
 					$priceValue = $superAttribute[$childData[$code]]['pricing_value'];
-					if($superAttribute[$childData[$code]]['is_percent']) {
+					if($superAttribute[$childData[$code]]['is_percent'])
+					{
 						$newPrice = $childData['price'] + $childData['price'] * $priceValue / 100;
-					} else {
+					}
+					else
+					{
 						$newPrice = $childData['price'] + $priceValue;
 					}
 					$childData['price'] = $newPrice;
@@ -313,7 +318,8 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$io->streamWrite('<Description><![CDATA['. $this->stripHtml($product['description']) . ']]></Description>');
 		$io->streamWrite('<Price><![CDATA['. $product['price'] . ']]></Price>');
 		$io->streamWrite('<ListPrice><![CDATA[' . $product['msrp'] . ']]></ListPrice>');
-		if(isset($product['cost'])) {
+		if(isset($product['cost']))
+		{
 			$io->streamWrite('<PurchasePrice><![CDATA[' . $product['cost'] . ']]></PurchasePrice>');
 		}
 
@@ -322,19 +328,22 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 
 		// Add product SKU and GTIN
 		$io->streamWrite('<SKU><![CDATA[' . $product['sku'] . ']]></SKU>');
-		if(!empty($product['gtin'])) {
+		if(!empty($product['gtin']))
+		{
 			$io->streamWrite('<GTIN><![CDATA[' . $product['gtin'] . ']]></GTIN>');
 		}
 
 		// VAT and Shipping Time are pre configured in extension settings
-		if(!empty($this->config[$storeId]['optional']['vat_rate'])) {
+		if(!empty($this->config[$storeId]['optional']['vat_rate']))
+		{
 			$vat = $this->config[$storeId]['optional']['vat_rate'];
 			$io->streamWrite('<VAT><![CDATA[".$vat."]]></VAT>');
 		}
 
 		$shippingTime = ($product['qty'] > 0) ? $this->config[$storeId]['optional']['shipping_time'] : $this->config[$storeId]['optional']['shipping_time_oos'];
 
-		if($shippingTime) {
+		if($shippingTime)
+		{
 			$io->streamWrite('<ShippingTime><![CDATA[' . $shippingTime . ']]></ShippingTime>');
 		}
 
@@ -342,10 +351,14 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$images = $product['images'];
 		$i = 0;
 
-		foreach($product['images'] as $image) {
-			if($i == 0){ 
+		foreach($product['images'] as $image)
+		{
+			if($i == 0)
+			{ 
 				$io->streamWrite('<ImageUrl><![CDATA[' . $image->getUrl() . ']]></ImageUrl>');
-			} else {
+			}
+			else
+			{
 				$io->streamWrite('<ImageUrl' . $i .'><![CDATA[' . $image->getUrl() . ']]></ImageUrl' . $i . '>');
 			}
 			$i++;
@@ -353,17 +366,18 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 
 		// Prepare category path
 		//$io->streamWrite('<CategoryId><![CDATA[' . $product['category_id'] . ']]></CategoryId>');
-		if(isset($product['category_id'])) {
+		if(isset($product['category_id']))
+		{
 			$categoryId = $product['category_id'];
-			if(isset($categories[$categoryId])) {
+			if(isset($categories[$categoryId]))
+			{
 				$categoryPathIds = explode('/', $categories[$categoryId]['path']);
 				$categoryPath = null;
 
-				foreach($categoryPathIds as $id) {
-					if($id > 1
-						&& $id != $store->getRootCategoryId()
-						&& isset($categories[$id])
-					) {
+				foreach($categoryPathIds as $id)
+				{
+					if($id > 1 && $id != $store->getRootCategoryId() && isset($categories[$id]))
+					{
 						$categoryPath .= !empty($categoryPath) ? ' > ' : '';
 						$categoryPath .= $categories[$id]['name'];
 					}
