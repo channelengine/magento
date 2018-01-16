@@ -292,6 +292,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	{
 		$storeId = $store->getId();
 
+
+		$transportObject = new Varien_Object();
+		$transportObject->setProduct($product);
+		Mage::dispatchEvent('channelengine_feed_product_write_before', array('transport' => $transportObject));
+		$product = $transportObject->getProduct();
+
 		$io->streamWrite('<Product>');
 		$io->streamWrite('<Id>' . $product['id'] . '</Id>');
 
