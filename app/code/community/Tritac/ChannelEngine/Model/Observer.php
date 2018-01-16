@@ -384,7 +384,6 @@ class Tritac_ChannelEngine_Model_Observer
 
         return true;
     }
-
     /**
      * Post new shipment to ChannelEngine. This function is set in extension config file.
      *

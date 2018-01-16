@@ -129,7 +129,7 @@
 
     <adminhtml>
         <events>
-            <core_block_abstract_prepare_layout_before>
+            <!--<core_block_abstract_prepare_layout_before>
                 <observers>
                     <ordergrid_column_append>
                         <type>singleton</type>
@@ -146,7 +146,7 @@
                         <method>prepareOrderGridCollection</method>
                     </prepare_order_grid_collection>
                 </observers>
-            </sales_order_grid_collection_load_before>
+            </sales_order_grid_collection_load_before>-->
         </events>
     </adminhtml>
 
