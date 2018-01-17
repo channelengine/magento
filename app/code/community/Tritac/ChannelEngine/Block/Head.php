@@ -1,13 +1,15 @@
 <?php
 class Tritac_ChannelEngine_Block_Head extends Mage_Core_Block_Template
 {
-    public function getAccountName() {
-
+    public function getAccountName()
+    {
         $storeId = Mage::app()->getStore()->getId();
-        $config = Mage::helper('channelengine')->getConfig($storeId);
+        $helper = Mage::helper('channelengine');
 
-        if(!isset($config['general'][$storeId]) || empty($config['general'][$storeId]['tenant'])) return false;
+        if(!$helper->isConnected($storeId)) return false;
 
-        return $config['general'][$storeId]['tenant'];
+        $config = $helper->getConfig($storeId);
+
+        return $config['general']['tenant'];
     }
 }
