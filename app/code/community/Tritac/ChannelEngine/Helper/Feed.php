@@ -165,6 +165,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$productData['url'] = $product->getProductUrl();
 		$productData['images'] = $product->getMediaGalleryImages();
 		$productData['price'] = $product->getFinalPrice();
+		$productData['special_price'] = $product['special_price'];
 
 		// Check whether this product has option variants
 		if(isset($options[$productData['entity_id']]))
@@ -311,6 +312,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$io->streamWrite('<ShortDescription><![CDATA['. $this->stripHtml($product['short_description']) . ']]></ShortDescription>');
 		$io->streamWrite('<Manufacturer><![CDATA[' . $product['manufacturer'] . ']]></Manufacturer>');
 		$io->streamWrite('<Price><![CDATA['. $product['price'] . ']]></Price>');
+		$io->streamWrite('<SpecialPrice><![CDATA['. $product['special_price'] . ']]></SpecialPrice>');
 		$io->streamWrite('<ListPrice><![CDATA[' . $product['msrp'] . ']]></ListPrice>');
 
 		if(isset($product['cost'])) $io->streamWrite('<PurchasePrice><![CDATA[' . $product['cost'] . ']]></PurchasePrice>');
@@ -485,6 +487,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	        'description',
 	        'short_description',
 	        'price',
+	        'special_price',
 	        'cost',
 	        'visibility',
 	        'msrp'
@@ -494,7 +497,6 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	    	'msrp_display_actual_price_type',
 	    	'msrp_enabled',
 	    	'required_options',
-	    	'special_price',
 	        'special_from_date',
 	        'special_to_date',
 	        'image',
