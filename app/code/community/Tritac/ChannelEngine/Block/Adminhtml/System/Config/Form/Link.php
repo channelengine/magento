@@ -30,7 +30,7 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Form_Link extends Mage_
         $data = $element->getOriginalData();
         $action = $data['link_action'];
         $label = $data['link_label'];
-        $url = Mage::helper('adminhtml')->getUrl('channelengine/adminhtml_generate/' . $action);
+        $url = $this->getUrl('adminhtml/ce/' . $action);
         return '<a type="text" href="'.$url.'" target="_blank">'.$label.'</a>';
     }
 

@@ -2,10 +2,9 @@
 <config>
     <modules>
         <Tritac_ChannelEngine>
-            <version>5.4.1</version>
+            <version>5.4.2</version>
         </Tritac_ChannelEngine>
     </modules>
-
     <global>
         <blocks>
             <channelengine>
@@ -126,7 +125,17 @@
             </collection>
         </product>
     </frontend>
-
+    <admin>
+        <routers>
+            <adminhtml>
+                <args>
+                    <modules>
+                        <tritac_channelengine after="Mage_Adminhtml">Tritac_ChannelEngine_Adminhtml</tritac_channelengine>
+                    </modules>
+                </args>
+            </adminhtml>
+        </routers>
+    </admin>
     <adminhtml>
         <events>
             <!--<core_block_abstract_prepare_layout_before>
@@ -149,19 +158,6 @@
             </sales_order_grid_collection_load_before>-->
         </events>
     </adminhtml>
-
-    <admin>
-        <routers>
-            <channelengine>
-                <use>admin</use>
-                <args>
-                    <module>Tritac_ChannelEngine</module>
-                    <frontName>channelengine</frontName>
-                </args>
-            </channelengine>
-        </routers>
-    </admin>
-
     <crontab>
         <jobs>
             <channelengine_import_orders>

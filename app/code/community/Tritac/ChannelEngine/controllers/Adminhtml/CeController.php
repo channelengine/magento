@@ -1,5 +1,5 @@
 <?php
-class Tritac_ChannelEngine_Adminhtml_GenerateController extends Mage_Adminhtml_Controller_Action
+class Tritac_ChannelEngine_Adminhtml_CeController extends Mage_Adminhtml_Controller_Action
 {
     protected function _isAllowed()
     {
@@ -52,8 +52,8 @@ class Tritac_ChannelEngine_Adminhtml_GenerateController extends Mage_Adminhtml_C
             ->setHeader('Content-Length', filesize($logFile))
             ->setHeader('Content-Disposition', 'attachment' . '; filename=' . basename($logFile));
 
-        $this->getResponse ()->clearBody();
-        $this->getResponse ()->sendHeaders();
+        $this->getResponse()->clearBody();
+        $this->getResponse()->sendHeaders();
         readfile($logFile);
     }
 

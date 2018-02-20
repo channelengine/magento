@@ -40,7 +40,7 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Form_Button extends Mag
     public function getAjaxUrl()
     {
         $action = $this->data['ajax_action'];
-        return Mage::helper('adminhtml')->getUrl('channelengine/adminhtml_generate/' . $action);
+        return Mage::helper('adminhtml')->getUrl('adminhtml/ce/' . $action);
     }
 
     public function getId()

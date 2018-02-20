@@ -2,9 +2,6 @@
 <config>
     <acl>
         <resources>
-            <all>
-                <title>Allow Everything</title>
-            </all>
             <admin>
                 <children>
                     <system>
@@ -18,6 +15,17 @@
                             </config>
                         </children>
                     </system>
+                    <channelengine module="channelengine">
+                        <title>ChannelEngine.com</title>
+                        <sort_order>200</sort_order>
+                        <children>
+                            <channelengine module="channelengine">
+                                <title>ChannelEngine.com</title>
+                                <sort_order>100</sort_order>
+                                <action>adminhtml/ce/</action>
+                            </channelengine>
+                        </children>
+                    </channelengine>
                 </children>
             </admin>
         </resources>
