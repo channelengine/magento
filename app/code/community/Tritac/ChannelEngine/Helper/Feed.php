@@ -63,16 +63,35 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$io->streamWrite('<Products xmlns:xsd="http://www.w3.org/2001/XMLSchema"
 			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" GeneratedAt="'.$date.'">' . "\n");
 
-		$collection = Mage::getResourceModel('catalog/product_collection');
-		$flatCatalogEnabled = $collection->isEnabledFlat();
-
+		$flatCatalogEnabled = Mage::getResourceModel('catalog/product_collection')->isEnabledFlat();
 		$attributesInfo = $this->getAttributes($storeId, $flatCatalogEnabled);
 		$attributesToSelect = $attributesInfo['attributesToSelect'];
 		$customAttributes = $attributesInfo['customAttributes'];
 		$systemAttributes = $attributesInfo['systemAttributes'];
-
 		$categories = $this->getCategories($store);
 		$options = $this->getOptions($storeId);
+
+		// Iterate all simple products, except the invisible ones (they are most probably children of configurable products)
+		$select = $this->getProductCollection($store, $attributesToSelect, Mage_Catalog_Model_Product_Type::TYPE_SIMPLE);
+		$this->iterateProductCollection($io, $categories, $customAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $select, false);
+
+		// Iterate all configurable products, except the invisible ones 
+		$select = $this->getProductCollection($store, $attributesToSelect, Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE);
+		//echo((string)$select); die();
+		$this->iterateProductCollection($io, $categories, $customAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $select, true);
+
+		$io->streamWrite('</Products>');
+		$io->streamUnlock();
+		$io->streamClose();
+
+		return true;
+	}
+
+	private function getProductCollection($store, $attributesToSelect, $type = Mage_Catalog_Model_Product_Type::DEFAULT_TYPE)
+	{
+		$collection = Mage::getResourceModel('catalog/product_collection');
+		$storeId = $store->getId();
+		$rootCategoryId = $store->getRootCategoryId();
 
 		// Make sure to create a new instance of our collection after setting the store ID
 		// when using the flat catalog. Otherwise store ID will be ignored. This is a bug in magento.
@@ -84,20 +103,24 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 			$collection = Mage::getResourceModel('catalog/product_collection');
 		} 
 
-		// Only get simple products,
 		$collection->addAttributeToSelect($attributesToSelect, 'left')
-			->addFieldToFilter('type_id', array('in' => array('simple')))
-			->addStoreFilter($store)
-			->addAttributeToFilter('status', 1)
-			->addAttributeToFilter('visibility', array('in' => array(
-				Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_CATALOG,
-				Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_SEARCH,
-				Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH)))
+			->addFieldToFilter('type_id', array('in' => array($type)))
+			->addStoreFilter($store)			
 			->addAttributeToSort('entity_id', 'DESC');
 
+		if($type == Mage_Catalog_Model_Product_Type::TYPE_SIMPLE)
+		{
+			$collection->addAttributeToFilter('visibility', array('in' => array(
+				Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_CATALOG,
+				Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_SEARCH,
+				Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH
+			)));
+		}
+
+		$select = $collection->getSelect();
+
 		// Add qty and category fields to select
-		$collection->getSelect()
-			->joinLeft(
+		$select->joinLeft(
 				array('csi' => Mage::getSingleton('core/resource')->getTableName('cataloginventory/stock_item')),
 				'e.entity_id = csi.product_id',
 				array('qty' => 'COALESCE(qty, 0)')
@@ -109,32 +132,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 			)
 			->joinInner(
 				array('cce' => Mage::getSingleton('core/resource')->getTableName('catalog_category_entity')),
-				'cce.entity_id = ccp.category_id AND cce.path LIKE ' . "'%/" . $store->getRootCategoryId() . "/%'",
+				'cce.entity_id = ccp.category_id AND cce.path LIKE ' . "'%/" . $rootCategoryId . "/%'",
 				array()
 			)
 			->group('e.entity_id');
 
-		// Iterate all simple products, except the invisible ones (they are most probably children of configurable products)
-		$this->iterateProductCollection($io, $categories, $customAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $collection->getSelect(), false);
-
-		// Update the query to select configurable products
-		$collection->clear()->getSelect()->reset('where');
-		$collection->addFieldToFilter('type_id', array('in' => array('configurable')))
-			->addStoreFilter($store)
-			->addAttributeToFilter('status', 1)
-			->addAttributeToFilter('visibility', array('in' => array(
-				Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_CATALOG,
-				Mage_Catalog_Model_Product_Visibility::VISIBILITY_IN_SEARCH,
-				Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH)))
-			->addAttributeToSort('entity_id', 'DESC');
-
-		$this->iterateProductCollection($io, $categories, $customAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $collection->getSelect(), true);
-
-		$io->streamWrite('</Products>');
-		$io->streamUnlock();
-		$io->streamClose();
-
-		return true;
+		return $select;
 	}
 
 	public function iterateProductsCallback($args)
@@ -232,10 +235,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 			}
 		}
 
-		$childProducts = Mage::getModel('catalog/product_type_configurable')
+		$childProductCollection = Mage::getModel('catalog/product_type_configurable')
 			->getUsedProductCollection($product)
-			->addAttributeToSelect($attributesToSelect)
-			->getItems();
+			->addAttributeToFilter('status', 1)
+			->addAttributeToSelect($attributesToSelect);
+
+		$childProducts = $childProductCollection->getItems();
 
 		foreach($childProducts as $child)
 		{
