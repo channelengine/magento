@@ -167,8 +167,18 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		if(!empty($config['general']['gtin'])) $productData['gtin'] = $productData[$config['general']['gtin']];
 		$productData['url'] = $product->getProductUrl();
 		$productData['images'] = $product->getMediaGalleryImages();
-		$productData['price'] = $product->getFinalPrice();
+		$finalPrice = $product->getFinalPrice();
+		
+		// The final price as calculated by magento
+		$productData['final_price'] = $finalPrice;
+		// The product price field
+		$productData['base_price'] = $product['price'];
+		// The product special price field
 		$productData['special_price'] = $product['special_price'];
+		// The manufacturer suggested retail price field
+		$productData['list_price'] = $product['msrp'];
+		// The final price as calculated by magento, which might have additional option prices added later on
+		$productData['price'] = $finalPrice;
 
 		// Check whether this product has option variants
 		if(isset($options[$productData['entity_id']]))
@@ -252,6 +262,13 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 			$childData['url'] = $productData['url'];
 			$childData['description'] = $productData['description'];
 
+			// The product price field
+			$childData['base_price'] = $childData['price'];
+			// The product special price field
+			$childData['special_price'] = $childData['special_price'];
+			// The manufacturer suggested retail price field
+			$childData['list_price'] = $childData['msrp'];
+
 			if(!isset($childData['images']))
 			{
 				$childData['images'] = $productData['images'];
@@ -318,7 +335,8 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$io->streamWrite('<Manufacturer><![CDATA[' . $product['manufacturer'] . ']]></Manufacturer>');
 		$io->streamWrite('<Price><![CDATA['. $product['price'] . ']]></Price>');
 		$io->streamWrite('<SpecialPrice><![CDATA['. $product['special_price'] . ']]></SpecialPrice>');
-		$io->streamWrite('<ListPrice><![CDATA[' . $product['msrp'] . ']]></ListPrice>');
+		$io->streamWrite('<ListPrice><![CDATA[' . $product['list_price'] . ']]></ListPrice>');
+		$io->streamWrite('<BasePrice><![CDATA[' . $product['base_price'] . ']]></BasePrice>');
 
 		if(isset($product['cost'])) $io->streamWrite('<PurchasePrice><![CDATA[' . $product['cost'] . ']]></PurchasePrice>');
 
