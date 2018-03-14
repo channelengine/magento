@@ -72,11 +72,11 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$options = $this->getOptions($storeId);
 
 		// Iterate all simple products, except the invisible ones (they are most probably children of configurable products)
-		$select = $this->getProductCollection($store, $attributesToSelect, Mage_Catalog_Model_Product_Type::TYPE_SIMPLE);
+		$select = $this->getProductCollection($store, $attributesToSelect, $flatCatalogEnabled, Mage_Catalog_Model_Product_Type::TYPE_SIMPLE);
 		$this->iterateProductCollection($io, $categories, $customAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $select, false);
 
 		// Iterate all configurable products, except the invisible ones 
-		$select = $this->getProductCollection($store, $attributesToSelect, Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE);
+		$select = $this->getProductCollection($store, $attributesToSelect, $flatCatalogEnabled, Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE);
 		//echo((string)$select); die();
 		$this->iterateProductCollection($io, $categories, $customAttributes, $systemAttributes, $attributesToSelect, $options, $store, $memoryUsage, $select, true);
 
@@ -87,7 +87,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		return true;
 	}
 
-	private function getProductCollection($store, $attributesToSelect, $type = Mage_Catalog_Model_Product_Type::DEFAULT_TYPE)
+	private function getProductCollection($store, $attributesToSelect, $flatCatalogEnabled, $type = Mage_Catalog_Model_Product_Type::DEFAULT_TYPE)
 	{
 		$collection = Mage::getResourceModel('catalog/product_collection');
 		$storeId = $store->getId();
