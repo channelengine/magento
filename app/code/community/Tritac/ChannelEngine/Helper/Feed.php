@@ -180,6 +180,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		// The final price as calculated by magento, which might have additional option prices added later on
 		$productData['price'] = $finalPrice;
 
+		$productData['lowest_price'] = (
+			!empty($product['special_price']) && 
+			!empty($product['price']) && 
+			$product['special_price'] < $product['price']
+		) ? $product['special_price'] : $product['price'];
+
 		// Check whether this product has option variants
 		if(isset($options[$productData['entity_id']]))
 		{
@@ -299,6 +305,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				}
 			}
 
+			$childData['lowest_price'] = (
+				!empty($childData['special_price']) && 
+				!empty($childData['price']) && 
+				$childData['special_price'] < $childData['price']
+			) ? $childData['special_price'] : $childData['price'];
+
 			$this->writeProduct($io, $store, $childData, $categories, $customAttributes, $systemAttributes);
 		}
 	}
@@ -332,6 +344,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$io->streamWrite('<ShortDescription><![CDATA['. $this->stripHtml($product['short_description']) . ']]></ShortDescription>');
 		$io->streamWrite('<Manufacturer><![CDATA[' . $product['manufacturer'] . ']]></Manufacturer>');
 		$io->streamWrite('<Price><![CDATA['. $product['price'] . ']]></Price>');
+		$io->streamWrite('<LowestPrice><![CDATA['. $product['lowest_price'] . ']]></LowestPrice>');
 		$io->streamWrite('<SpecialPrice><![CDATA['. $product['special_price'] . ']]></SpecialPrice>');
 		$io->streamWrite('<ListPrice><![CDATA[' . $product['list_price'] . ']]></ListPrice>');
 		$io->streamWrite('<BasePrice><![CDATA[' . $product['base_price'] . ']]></BasePrice>');
