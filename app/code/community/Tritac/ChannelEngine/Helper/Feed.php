@@ -281,9 +281,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				$stock = $childData['stock_item']->getData();
 				$childData['qty'] = $stock['qty'];
 			}
-
-			if(!isset($childData['image']) || $childData['image'] == 'no_slection') $childData['image'] = $productData['image'];
-
+			
 			foreach($superAttributes as $code => $superAttribute)
 			{
 				if(isset($childData[$code]))
