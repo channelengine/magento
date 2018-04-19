@@ -274,8 +274,6 @@ class Tritac_ChannelEngine_Model_Observer
                     ->setCollectShippingRates(true)
                     ->setShippingMethod('channelengine_channelengine');
 
-                $quote->collectTotals();
-
                 // Set guest customer
                 $quote->setCustomerId(null)
                     ->setCustomerEmail($quote->getBillingAddress()->getEmail())
