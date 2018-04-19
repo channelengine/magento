@@ -274,17 +274,15 @@ class Tritac_ChannelEngine_Model_Observer
                     ->setCollectShippingRates(true)
                     ->setShippingMethod('channelengine_channelengine');
 
-                $quote->collectTotals();
+                // Set custom payment method
+                $quote->setIsSystem(true);
+                $quote->getPayment()->importData(array('method' => 'channelengine'));
 
                 // Set guest customer
                 $quote->setCustomerId(null)
                     ->setCustomerEmail($quote->getBillingAddress()->getEmail())
                     ->setCustomerIsGuest(true)
                     ->setCustomerGroupId(Mage_Customer_Model_Group::NOT_LOGGED_IN_ID);
-
-                // Set custom payment method
-                $quote->setIsSystem(true);
-                $quote->getPayment()->importData(array('method' => 'channelengine'));
 
                 // Save quote and convert it to new order
                 try
