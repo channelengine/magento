@@ -201,8 +201,12 @@ class Tritac_ChannelEngine_Model_Observer
                     // Add product to quote
                     try
                     {
+                        if(!$_product->getId())
+                        {
+                            Mage::throwException('Cannot find product: ' . $productId);
+                        }
+
                         $_quoteItem = $quote->addProduct($_product, $params);
-                        
                         if(is_string($_quoteItem))
                         {
                             // Magento sometimes returns a string when the method fails. -_-"
@@ -216,9 +220,9 @@ class Tritac_ChannelEngine_Model_Observer
                     }
                     catch (Exception $e)
                     {
-                        Mage::getModel('adminnotification/inbox')->addCritical(
+                        $this->addAdminNotification(
                             "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
-                            "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
+                            "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com"
                         );
                         $this->logException($e);
                         continue 2;
@@ -293,9 +297,9 @@ class Tritac_ChannelEngine_Model_Observer
                 }
                 catch (Exception $e)
                 {
-                    Mage::getModel('adminnotification/inbox')->addCritical(
+                    $this->addAdminNotification(
                         "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
-                        "Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
+                        "Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com"
                     );
                     $this->logException($e);
                     continue;
@@ -348,9 +352,9 @@ class Tritac_ChannelEngine_Model_Observer
                 }
                 catch (Exception $e)
                 {
-                    Mage::getModel('adminnotification/inbox')->addCritical(
+                    $this->addAdminNotification(
                         "An invoice could not be created (order #{$magentoOrder->getIncrementId()}, {$order->getChannelName()} #{$order->getChannelOrderNo()})",
-                        "Reason: {$e->getMessage()} Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792"
+                        "Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com"
                     );
 
                     $this->logException($e);
@@ -403,7 +407,7 @@ class Tritac_ChannelEngine_Model_Observer
         if($ceOrder->getId() == null) return true;
 
         $errorTitle = "A shipment (#{$_shipment->getId()}) could not be updated";
-        $errorMessage = "Please contact ChannelEngine support at <a href='mailto:support@channelengine.com'>support@channelengine.com</a> or +31(0)71-5288792";
+        $errorMessage = "Please contact ChannelEngine support at support@channelengine.com";
 
         // Check if the API client was initialized for this order
         if(!isset($this->_client[$storeId])) return false;
@@ -454,7 +458,7 @@ class Tritac_ChannelEngine_Model_Observer
                 if(!$response->getSuccess())
                 {
                     $this->logApiError($response, $ceShipmentUpdate);
-                    Mage::getModel('adminnotification/inbox')->addCritical($errorTitle, $errorMessage);
+                    $this->addAdminNotification($errorTitle, $errorMessage);
                     return false;
                 }
             }
@@ -497,7 +501,7 @@ class Tritac_ChannelEngine_Model_Observer
             if(!$response->getSuccess())
             {
                 $this->logApiError($response, $ceShipment);
-                Mage::getModel('adminnotification/inbox')->addCritical($errorTitle, $errorMessage);
+                $this->addAdminNotification($errorTitle, $errorMessage);
                 return false;
             }
 
@@ -507,7 +511,7 @@ class Tritac_ChannelEngine_Model_Observer
         catch(Exception $e)
         {
             $this->logException($e);
-             Mage::getModel('adminnotification/inbox')->addCritical($errorTitle, $errorMessage);
+            $this->addAdminNotification($errorTitle, $errorMessage);
             return false;
         }
 
@@ -565,24 +569,30 @@ class Tritac_ChannelEngine_Model_Observer
                 $message   .= "Reason: {$return->getReason()}<br />";
                 $message   .= "For more details visit ChannelEngine your <a href='".$link."' target='_blank'>account</a>";
 
-                // Check if notification is already exist
-                $_resource  = Mage::getSingleton('core/resource');
-                $_connectionRead = $_resource->getConnection('core_read');
-                $select = $_connectionRead->select()
-                    ->from($_resource->getTableName('adminnotification/inbox'))
-                    ->where('title = ?', $title)
-                    ->where('is_remove != 1')
-                    ->limit(1);
-                $data = $_connectionRead->fetchRow($select);
-
-                if ($data) continue;
-
-                // Add new notification
-                Mage::getModel('adminnotification/inbox')->addCritical($title, $message);
+                $this->addAdminNotification($title, $message);
             }
         }
         
         return true;
+    }
+
+    private function addAdminNotification($title, $message)
+    {
+        // Check if notification already exists
+        $_resource  = Mage::getSingleton('core/resource');
+        $_connectionRead = $_resource->getConnection('core_read');
+        $select = $_connectionRead->select()
+            ->from($_resource->getTableName('adminnotification/inbox'))
+            ->where('title = ?', $title)
+            ->where('is_remove != 1')
+            ->limit(1);
+
+        $data = $_connectionRead->fetchRow($select);
+
+        if ($data) return;
+
+        // Add new notification
+        Mage::getModel('adminnotification/inbox')->addCritical($title, $message);
     }
 
     /**
