@@ -341,7 +341,9 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		$io->streamWrite('<Type><![CDATA[' . $product['type_id'] . ']]></Type>');
 		$io->streamWrite('<Name><![CDATA[' . $product['name'] . ']]></Name>');
 		$io->streamWrite('<Description><![CDATA['. $this->stripHtml($product['description']) . ']]></Description>');
+		$io->streamWrite('<DescriptionWithHtml><![CDATA['. $this->stripHtml($product['description'], true) . ']]></DescriptionWithHtml>');
 		$io->streamWrite('<ShortDescription><![CDATA['. $this->stripHtml($product['short_description']) . ']]></ShortDescription>');
+		$io->streamWrite('<ShortDescriptionWithHtml><![CDATA['. $this->stripHtml($product['short_description'], true) . ']]></ShortDescriptionWithHtml>');
 		$io->streamWrite('<Manufacturer><![CDATA[' . $product['manufacturer'] . ']]></Manufacturer>');
 		$io->streamWrite('<Price><![CDATA['. $product['price'] . ']]></Price>');
 		$io->streamWrite('<LowestPrice><![CDATA['. $product['lowest_price'] . ']]></LowestPrice>');
@@ -438,6 +440,8 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				}
 				$value = implode(', ', $valueList);
 			}
+
+			$value = $this->stripHtml($value, true);
 
 			$io->streamWrite('<' . $code . '><![CDATA[' . $value . ']]></' . $code . '>');
 		}
@@ -591,9 +595,14 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
         }
 	}
 
-	private function stripHtml($string)
+	private function stripHtml($string, $soft = false)
 	{
-		$string = preg_replace('/\<br(\s*)?\/?\>/i', "\n", $string);
-		return strip_tags($string);
-	}  
+		if(!$soft) {
+			$string = preg_replace('/\<br(\s*)?\/?\>/i', "\n", $string);
+			return strip_tags($string);
+		} else {
+			return strip_tags($string, "<div><span><pre><p><br><hr><hgroup><h1><h2><h3><h4><h5><h6><ul><ol><li><dl><dt><dd><strong><em><b><i><u><img><a><abbr><address><blockquote><area><audio><video><caption><table><tbody><td><tfoot><th><thead><tr>");
+		}
+		
+	}
 }
