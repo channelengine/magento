@@ -597,6 +597,8 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 
 	private function stripHtml($string, $soft = false)
 	{
+		if(!is_string($string)) return $string;
+
 		if(!$soft) {
 			$string = preg_replace('/\<br(\s*)?\/?\>/i', "\n", $string);
 			return strip_tags($string);
