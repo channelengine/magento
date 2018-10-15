@@ -22,20 +22,31 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		Mage::app()->loadAreaPart(Mage_Core_Model_App_Area::AREA_FRONTEND, Mage_Core_Model_App_Area::PART_EVENTS);
 	}
 
-	/**
-	 * Generate products feed for ChannelEngine
-	 */
-	public function generateFeeds()
-	{
-		@set_time_limit(15 * 60);
 
-		foreach($this->stores as $store)
-		{
-			$this->generateFeed($store);
-		}
+    /**
+     * Exclude store from cronjob
+     * @param $store
+     * @return bool
+     */
+    private function excludeStoreViewFromCronjob($store)
+    {
+        return Mage::getStoreConfig('channelengine/diagnostics/disable_cronjob', $store) == 1;
+    }
 
-		return true;
-	}
+    /**
+     * Generate products feed for ChannelEngine
+     */
+    public function generateFeeds()
+    {
+        @set_time_limit(15 * 60);
+        foreach($this->stores as $store)
+        {
+            if(!$this->excludeStoreViewFromCronjob($store)) {
+                $this->generateFeed($store);
+            }
+        }
+        return true;
+    }
 
 	public function generateFeed($store)
 	{
