@@ -338,10 +338,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		if(isset($product['group_code'])) $io->streamWrite('<GroupCode><![CDATA[' . $product['group_code'] . ']]></GroupCode>');
 		if(isset($product['parent_id'])) $io->streamWrite('<ParentId><![CDATA[' . $product['parent_id'] . ']]></ParentId>');
 
+		$strippedDescription = $this->stripHtml($product['description'], true);
+		
 		$io->streamWrite('<Type><![CDATA[' . $product['type_id'] . ']]></Type>');
 		$io->streamWrite('<Name><![CDATA[' . $product['name'] . ']]></Name>');
-		$io->streamWrite('<Description><![CDATA['. $this->stripHtml($product['description']) . ']]></Description>');
-		$io->streamWrite('<DescriptionWithHtml><![CDATA['. $this->stripHtml($product['description'], true) . ']]></DescriptionWithHtml>');
+		$io->streamWrite('<Description><![CDATA['. $strippedDescription . ']]></Description>');
+		$io->streamWrite('<DescriptionWithHtml><![CDATA['. $strippedDescription . ']]></DescriptionWithHtml>');
 		$io->streamWrite('<ShortDescription><![CDATA['. $this->stripHtml($product['short_description']) . ']]></ShortDescription>');
 		$io->streamWrite('<ShortDescriptionWithHtml><![CDATA['. $this->stripHtml($product['short_description'], true) . ']]></ShortDescriptionWithHtml>');
 		$io->streamWrite('<Manufacturer><![CDATA[' . $product['manufacturer'] . ']]></Manufacturer>');
