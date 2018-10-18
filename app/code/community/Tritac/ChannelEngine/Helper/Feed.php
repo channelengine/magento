@@ -30,7 +30,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
      */
     private function excludeStoreViewFromCronjob($store)
     {
-        return Mage::getStoreConfig('channelengine/diagnostics/disable_cronjob', $store) == 1;
+        return Mage::getStoreConfig('channelengine/optional/disable_cronjob', $store) == 1;
     }
 
     /**
@@ -52,19 +52,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	{
 		Mage::app()->setCurrentStore($store);
 		$storeId = $store->getId();
-
 		$config = $this->config[$storeId];
-
-		if(!$this->helper->isConnected($storeId)) return;
-
 		$memoryUsage = memory_get_usage();
 		$tenant = $config['general']['tenant'];
-
 		$name = $tenant.'_products.xml';
 		$file = $this->feedDir . DS . $name;
-
 		$date = date('c');
-
 		$io = new Varien_Io_File();
 		$io->setAllowCreateFolders(true);
 		$io->open(array('path' => $this->feedDir));
