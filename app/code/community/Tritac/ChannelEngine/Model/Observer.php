@@ -193,6 +193,8 @@ class Tritac_ChannelEngine_Model_Observer
                         $_product->load($productId);
                     }
 
+                    $_product->setTaxClassId(0);
+
                     // Prepare product parameters for quote
                     $params = new Varien_Object();
                     $params->setQty($item->getQuantity());
