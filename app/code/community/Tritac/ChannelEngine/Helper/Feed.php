@@ -28,7 +28,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
      * @param $store
      * @return bool
      */
-    private function excludeStoreViewFromCronjob($store)
+    private function enabledFeedGeneration($store)
     {
         return Mage::getStoreConfig('channelengine/optional/disable_cronjob', $store) == 1;
     }
@@ -41,7 +41,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
         @set_time_limit(15 * 60);
         foreach($this->stores as $store)
         {
-            if(!$this->excludeStoreViewFromCronjob($store)) {
+            if($this->enabledFeedGeneration($store)) {
                 $this->generateFeed($store);
             }
         }
