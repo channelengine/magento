@@ -121,6 +121,12 @@ class Tritac_ChannelEngine_Model_Observer
     }
 
 
+    private function importFulfilmentOrders($storeId)
+    {
+        $store = Mage::getModel('core/store')->load($storeId);
+        return Mage::getStoreConfig('channelengine/optional/enable_fulfilment_import', $store) == 1;
+    }
+
     public function fetchFulfilmentOrders()
     {
 
@@ -130,6 +136,11 @@ class Tritac_ChannelEngine_Model_Observer
         $from_date = date('Y-m-d',strtotime('-5 days')) .' 00:00:00';
         $to_date = date('Y-m-d').' 23:59:59';
         foreach($this->_client['orders'] as $storeId => $client) {
+
+            if(!$this->importFulfilmentOrders($storeId)) {
+                continue;
+            }
+
             $response = null;
             try
             {
@@ -617,7 +628,7 @@ class Tritac_ChannelEngine_Model_Observer
     {
         if(is_null($this->_client)) return false;
 
-        foreach($this->_client as $storeId => $client)
+        foreach($this->_client['returns'] as $storeId => $client)
         {
             $returnApi =& $client;
             $lastUpdatedAt = new DateTime('-1 day');
@@ -638,6 +649,7 @@ class Tritac_ChannelEngine_Model_Observer
                 $this->logException($e);
                 continue;
             }
+
 
             if($response->getCount() == 0) continue;
 
