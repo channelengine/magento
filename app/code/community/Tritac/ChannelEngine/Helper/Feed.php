@@ -28,9 +28,9 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
      * @param $store
      * @return bool
      */
-    private function enabledFeedGeneration($store)
+    private function enabledFeedGeneration($storeId)
     {
-        return Mage::getStoreConfig('channelengine/optional/disable_cronjob', $store) == 1;
+    	return $this->config[$storeId]['general']['enable_feed_generation'] == 1;
     }
 
     /**
@@ -41,9 +41,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
         @set_time_limit(15 * 60);
         foreach($this->stores as $store)
         {
-            if($this->enabledFeedGeneration($store)) {
-                $this->generateFeed($store);
-            }
+            $this->generateFeed($store);
         }
         return true;
     }
@@ -53,6 +51,9 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		Mage::app()->setCurrentStore($store);
 		$storeId = $store->getId();
 		$config = $this->config[$storeId];
+
+		if(!$this->enabledFeedGeneration($storeId)) return;
+
 		$memoryUsage = memory_get_usage();
 		$tenant = $config['general']['tenant'];
 		$name = $tenant.'_products.xml';
