@@ -143,7 +143,7 @@ class Tritac_ChannelEngine_Model_Observer
             $response = null;
             try
             {
-                $response = $client->orderGetByFilter('SHIPPED',null,$from_date,$to_date,null,'ONLY_CHANNEL');
+                $response = $client->orderGetByFilter('SHIPPED', null, $from_date, $to_date, null, 'ONLY_CHANNEL');
                 if(!$response->getSuccess())
                 {
                     $this->logApiError($response);
