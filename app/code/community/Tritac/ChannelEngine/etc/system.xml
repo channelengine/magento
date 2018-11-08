@@ -53,7 +53,7 @@
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
                             <comment>
-                                <![CDATA[<span class="notice">Set this option to yes to generate a product feed for this storeview.</span>]]>
+                                <![CDATA[<span class="notice">Set this option to YES to generate a product feed for this storeview.</span>]]>
                             </comment>
                             <sort_order>6</sort_order>
                             <show_in_store>1</show_in_store>
@@ -105,6 +105,16 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </disable_magento_vat_calculation>
+                        <enable_fulfilment_import translate="label">
+                            <label>Import marketplace fulfilled orders</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>
+                                <![CDATA[<span class="notice">When this option has been set to YES, orders fulfilled by the marketplace will be imported into Magento.</span>]]>
+                            </comment>
+                            <sort_order>0</sort_order>
+                            <show_in_store>1</show_in_store>
+                        </enable_fulfilment_import>
                         <vat_rate translate="label">
                             <label>Default Vat Rate (%)</label>
                             <frontend_type>text</frontend_type>
@@ -146,18 +156,6 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </expected_date>
-
-                        <enable_fulfilment_import translate="label">
-                            <label>Import fulfilment orders from Channelengine</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>channelengine/system_config_source_enablefulfilment</source_model>
-                            <comment>
-                                <![CDATA[<span class="notice">When this option has been set to Yes, fulfilment from Channelengine will be imported into Magento.</span>]]>
-                            </comment>
-                            <sort_order>6</sort_order>
-                            <show_in_store>1</show_in_store>
-                        </enable_fulfilment_import>
-
                     </fields>
                 </optional>
                 <diagnostics>
