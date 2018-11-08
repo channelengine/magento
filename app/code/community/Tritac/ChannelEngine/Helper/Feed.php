@@ -22,38 +22,43 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		Mage::app()->loadAreaPart(Mage_Core_Model_App_Area::AREA_FRONTEND, Mage_Core_Model_App_Area::PART_EVENTS);
 	}
 
-	/**
-	 * Generate products feed for ChannelEngine
-	 */
-	public function generateFeeds()
-	{
-		@set_time_limit(15 * 60);
 
-		foreach($this->stores as $store)
-		{
-			$this->generateFeed($store);
-		}
+    /**
+     * Exclude store from cronjob
+     * @param $store
+     * @return bool
+     */
+    private function enabledFeedGeneration($storeId)
+    {
+    	return $this->config[$storeId]['general']['enable_feed_generation'] == 1;
+    }
 
-		return true;
-	}
+    /**
+     * Generate products feed for ChannelEngine
+     */
+    public function generateFeeds()
+    {
+        @set_time_limit(15 * 60);
+        foreach($this->stores as $store)
+        {
+            $this->generateFeed($store);
+        }
+        return true;
+    }
 
 	public function generateFeed($store)
 	{
 		Mage::app()->setCurrentStore($store);
 		$storeId = $store->getId();
-
 		$config = $this->config[$storeId];
 
-		if(!$this->helper->isConnected($storeId)) return;
+		if(!$this->enabledFeedGeneration($storeId)) return;
 
 		$memoryUsage = memory_get_usage();
 		$tenant = $config['general']['tenant'];
-
 		$name = $tenant.'_products.xml';
 		$file = $this->feedDir . DS . $name;
-
 		$date = date('c');
-
 		$io = new Varien_Io_File();
 		$io->setAllowCreateFolders(true);
 		$io->open(array('path' => $this->feedDir));
@@ -338,10 +343,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 		if(isset($product['group_code'])) $io->streamWrite('<GroupCode><![CDATA[' . $product['group_code'] . ']]></GroupCode>');
 		if(isset($product['parent_id'])) $io->streamWrite('<ParentId><![CDATA[' . $product['parent_id'] . ']]></ParentId>');
 
+		$strippedDescription = $this->stripHtml($product['description'], true);
+		
 		$io->streamWrite('<Type><![CDATA[' . $product['type_id'] . ']]></Type>');
 		$io->streamWrite('<Name><![CDATA[' . $product['name'] . ']]></Name>');
-		$io->streamWrite('<Description><![CDATA['. $this->stripHtml($product['description']) . ']]></Description>');
-		$io->streamWrite('<DescriptionWithHtml><![CDATA['. $this->stripHtml($product['description'], true) . ']]></DescriptionWithHtml>');
+		$io->streamWrite('<Description><![CDATA['. $strippedDescription . ']]></Description>');
+		$io->streamWrite('<DescriptionWithHtml><![CDATA['. $strippedDescription . ']]></DescriptionWithHtml>');
 		$io->streamWrite('<ShortDescription><![CDATA['. $this->stripHtml($product['short_description']) . ']]></ShortDescription>');
 		$io->streamWrite('<ShortDescriptionWithHtml><![CDATA['. $this->stripHtml($product['short_description'], true) . ']]></ShortDescriptionWithHtml>');
 		$io->streamWrite('<Manufacturer><![CDATA[' . $product['manufacturer'] . ']]></Manufacturer>');

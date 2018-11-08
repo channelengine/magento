@@ -120,7 +120,6 @@ class Tritac_ChannelEngine_Model_Observer
         $this->_feedHelper->generateFeeds();
     }
 
-
     private function importFulfilmentOrders($storeId)
     {
         $store = Mage::getModel('core/store')->load($storeId);
@@ -219,7 +218,16 @@ class Tritac_ChannelEngine_Model_Observer
             }
 
         }
+    }
 
+    /**
+     * @param $storeId
+     * @return bool
+     */
+    private function disableMagentoVatCalculation($storeId)
+    {
+        $store = Mage::getModel('core/store')->load($storeId);
+        return Mage::getStoreConfig('channelengine/optional/disable_magento_vat_calculation', $store) == 1;
     }
 
     /**
@@ -291,6 +299,10 @@ class Tritac_ChannelEngine_Model_Observer
                         // If the product can't be found by ID, fall back on the SKU.
                         $productId = $_product->getIdBySku($productNo);
                         $_product->load($productId);
+                    }
+
+                    if($this->disableMagentoVatCalculation($storeId)) {
+                        $_product->setTaxClassId(0);
                     }
 
                     // Prepare product parameters for quote

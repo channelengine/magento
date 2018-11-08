@@ -26,7 +26,7 @@
                     <show_in_store>1</show_in_store>
                     <sort_order>1</sort_order>
                     <comment>
-                        <![CDATA[Please set the your ChannelEngine account details per individual store view.]]>       
+                        <![CDATA[Please set the your ChannelEngine account details per individual store view.]]>
                     </comment>
                     <fields>
                         <api_key translate="label">
@@ -48,6 +48,16 @@
                             <show_in_website>0</show_in_website>
                             <show_in_store>1</show_in_store>
                         </tenant>
+                        <enable_feed_generation translate="label">
+                            <label>Enable feed generation</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>
+                                <![CDATA[<span class="notice">Set this option to yes to generate a product feed for this storeview.</span>]]>
+                            </comment>
+                            <sort_order>6</sort_order>
+                            <show_in_store>1</show_in_store>
+                        </enable_feed_generation>
                         <feed_url translate="label">
                             <label>Feed URL</label>
                             <frontend_type>label</frontend_type>
@@ -74,6 +84,7 @@
                         </gtin>
                     </fields>
                 </general>
+
                 <optional translate="label">
                     <label>Optional settings</label>
                     <frontend_type>text</frontend_type>
@@ -82,6 +93,18 @@
                     <show_in_store>1</show_in_store>
                     <sort_order>2</sort_order>
                     <fields>
+                        <disable_magento_vat_calculation translate="label">
+                            <label>Disable Magento VAT calculation</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>
+                                <![CDATA[<span class="notice">When set to YES, Magento will not calculate VAT over the orders from ChannelEngine.</span>]]>
+                            </comment>
+                            <sort_order>0</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </disable_magento_vat_calculation>
                         <vat_rate translate="label">
                             <label>Default Vat Rate (%)</label>
                             <frontend_type>text</frontend_type>
@@ -179,6 +202,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </generate_product_feed>
+
                         <import_orders translate="button_label">
                             <label>Import orders</label>
                             <button_label>Manually import orders</button_label>
