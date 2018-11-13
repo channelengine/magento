@@ -14,7 +14,7 @@ use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentRequest;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentTrackingRequest;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentLineRequest;
 
-class Tritac_ChannelEngine_Model_Observer
+class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_aChannelEngine
 {
     /**
      * The CE logfile path
@@ -67,7 +67,6 @@ class Tritac_ChannelEngine_Model_Observer
         $this->_helper = Mage::helper('channelengine');
         $this->_feedHelper = Mage::helper('channelengine/feed');
         $this->_hasPostNL = Mage::helper('core')->isModuleEnabled('TIG_PostNL');
-
         $this->_config = $this->_helper->getConfig();
 
         /**
@@ -86,34 +85,6 @@ class Tritac_ChannelEngine_Model_Observer
         }
     }
 
-    private function logApiError($response, $model = null)
-    {
-        $this->log(
-            'API Call failed ['.$response->getStatusCode().'] ' . $response->getMessage() . PHP_EOL . print_r($model, true),
-            Zend_Log::ERR
-        );
-    }
-
-    private function log($message, $level = null)
-    {
-        Mage::log($message . PHP_EOL . '--------------------', $level, $file = self::LOGFILE, true);
-    }
-
-    private function logException($e, $model = null)
-    {
-        if($e instanceof ApiException)
-        {
-            $message = $e->getMessage() . PHP_EOL .
-                print_r($e->getResponseBody(), true) .
-                print_r($e->getResponseHeaders(), true) .
-                print_r($model, true) .
-                $e->getTraceAsString();
-            $this->log($message, Zend_Log::ERR);
-            return;
-        }
-
-        $this->log($e->__toString(), Zend_Log::ERR);
-    }
 
     public function generateFeeds()
     {
@@ -135,14 +106,12 @@ class Tritac_ChannelEngine_Model_Observer
         $from_date = date('Y-m-d',strtotime('-5 days')) .' 00:00:00';
         $to_date = date('Y-m-d').' 23:59:59';
         foreach($this->_client['orders'] as $storeId => $client) {
-
             if(!$this->importFulfilmentOrders($storeId)) {
                 continue;
             }
-
             $response = null;
-            try
-            {
+            try {
+
                 $response = $client->orderGetByFilter('SHIPPED', null, $from_date, $to_date, null, 'ONLY_CHANNEL');
                 if(!$response->getSuccess())
                 {
@@ -150,8 +119,7 @@ class Tritac_ChannelEngine_Model_Observer
                     continue;
                 }
             }
-            catch (Exception $e)
-            {
+            catch (Exception $e) {
                 $this->logException($e);
                 continue;
             }
@@ -193,7 +161,6 @@ class Tritac_ChannelEngine_Model_Observer
                     $params->setQty($item->getQuantity());
                     $params->setOptions($productOptions);
                     $add_product_to_quote = $product->addProductToQuote($_product, $productId, $quote, $params, $item, $order, $productNo);
-
                     if (!$add_product_to_quote) {
                         continue 2;
                     }
@@ -213,7 +180,6 @@ class Tritac_ChannelEngine_Model_Observer
                 }
                 $service = $product_data['service'];
                 $magentoOrder = $service->getOrder();
-                $magentoOrder->setExtOrderId($order->getId());
                 $product->processOrder($magentoOrder,$order);
             }
 
@@ -241,66 +207,48 @@ class Tritac_ChannelEngine_Model_Observer
         /**
          * Check if client is initialized
          */
-        if(is_null($this->_client)) return false;
+        $product = new Tritac_ChannelEngine_Model_Product();
+        $customer = new Tritac_ChannelEngine_Model_Customer();
+
+        if(is_null($this->_client['orders'])) return false;
 
 
-        foreach($this->_client['orders'] as $storeId => $client)
-        {
-            $response = null;
-            $orderApi=& $client;
-
-            try
-            {
-                $response = $orderApi->orderGetNew();
-                if(!$response->getSuccess())
-                {
-                    $this->logApiError($response);
-                    continue;
-                }
-            }
-            catch (Exception $e)
-            {
-                $this->logException($e);
-                continue;
-            }
-
+        foreach($this->_client['orders'] as $storeId => $client) {
+            $orderApi = $this->initOrderApi($client);
+            $response =& $orderApi;
+            if(!$orderApi) { continue;}
             if($response->getCount() == 0) continue;
 
-            foreach($response->getContent() as $order)
-            {
+
+            foreach($response->getContent() as $order) {
                 $billingAddress = $order->getBillingAddress();
                 $shippingAddress = $order->getShippingAddress();
-
-
                 $lines = $order->getLines();
 
                 if(count($lines) == 0 || empty($billingAddress)) continue;
-
                 // Initialize new quote
                 $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
-
-                foreach($lines as $item)
-                {
-                    $productNo = $item->getMerchantProductNo();
-
-                    $ids = explode('_', $productNo);
-                    $productId = $ids[0];
+                foreach($lines as $item) {
+                    $product_details = $product->generateProductId($item->getMerchantProductNo());
+                    // get order id
+                    $productId = $product_details['id'];
                     $productOptions = array();
-                    if(count($ids) == 3) {
+                    $ids = $product_details['ids'];
+                    if (count($ids) == 3) {
                         $productOptions = array($ids[1] => intval($ids[2]));
                     }
+                    $productNo = $product_details['productNo'];
 
                     // Load magento product
                     $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
                     $_product->load($productId);
-
-                    if(!$_product->getId())
-                    {
-                        // If the product can't be found by ID, fall back on the SKU.
+                    // If the product can't be found by ID, fall back on the SKU.
+                    if(!$_product->getId()){
                         $productId = $_product->getIdBySku($productNo);
                         $_product->load($productId);
                     }
 
+                    // visable vat
                     if($this->disableMagentoVatCalculation($storeId)) {
                         $_product->setTaxClassId(0);
                     }
@@ -309,191 +257,37 @@ class Tritac_ChannelEngine_Model_Observer
                     $params = new Varien_Object();
                     $params->setQty($item->getQuantity());
                     $params->setOptions($productOptions);
-
-                    // Add product to quote
-                    try
-                    {
-                        if(!$_product->getId())
-                        {
-                            Mage::throwException('Cannot find product: ' . $productId);
-                        }
-
-                        $_quoteItem = $quote->addProduct($_product, $params);
-                        if(is_string($_quoteItem))
-                        {
-                            // Magento sometimes returns a string when the method fails. -_-"
-                            Mage::throwException('Failed to create quote item: ' . $_quoteItem);
-                        }
-
-                        $price = $item->getUnitPriceInclVat();
-                        $_quoteItem->setOriginalCustomPrice($price);
-                        $_quoteItem->setCustomPrice($price);
-                        $_quoteItem->getProduct()->setIsSuperMode(true);
-                    }
-                    catch (Exception $e)
-                    {
-                        $this->addAdminNotification(
-                            "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
-                            "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com"
-                        );
-                        $this->logException($e);
+                    $add_product_to_quote = $product->addProductToQuote($_product, $productId, $quote, $params, $item, $order, $productNo);
+                    if (!$add_product_to_quote) {
                         continue 2;
                     }
                 }
 
-                $phone = $order->getPhone();
-                if(empty($phone)) $phone = '-';
+                $phone = $customer->formatPhone($order);
 
-                // Prepare billing and shipping addresses
-                $billingData = array(
-                    'company'       => $billingAddress->getCompanyName(),
-                    'firstname'     => $billingAddress->getFirstName(),
-                    'lastname'      => $billingAddress->getLastName(),
-                    'email'         => $order->getEmail(),
-                    'telephone'     => $phone,
-                    'country_id'    => $billingAddress->getCountryIso(),
-                    'postcode'      => $billingAddress->getZipCode(),
-                    'city'          => $billingAddress->getCity(),
-                    'street'        =>
-                        $billingAddress->getStreetName()."\n".
-                        $billingAddress->getHouseNr().
-                        $billingAddress->getHouseNrAddition()
-                );
-
-                $shippingData = array(
-                    'company'       => $shippingAddress->getCompanyName(),
-                    'firstname'     => $shippingAddress->getFirstName(),
-                    'lastname'      => $shippingAddress->getLastName(),
-                    'email'         => $order->getEmail(),
-                    'telephone'     => $phone,
-                    'country_id'    => $shippingAddress->getCountryIso(),
-                    'postcode'      => $shippingAddress->getZipCode(),
-                    'city'          => $shippingAddress->getCity(),
-                    'street'        =>
-                        $shippingAddress->getStreetName()."\n".
-                        $shippingAddress->getHouseNr().
-                        $shippingAddress->getHouseNrAddition()
-                );
-
+                $customer->setBillingData($billingAddress,$order);
+                $customer->setShippingData($shippingAddress,$order);
                 // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
                 Mage::register('channelengine_shipping_amount', floatval($order->getShippingCostsInclVat()));
                 // Set this value to make sure ChannelEngine requested the rates and not the frontend
                 // because the shipping method has a fallback on 0,- and this will make it show up on the frontend
                 Mage::register('channelengine_shipping', true);
-
-                $quote->getBillingAddress()
-                    ->addData($billingData);
-
-                $quote->getShippingAddress()
-                    ->addData($shippingData)
-                    ->setSaveInAddressBook(0)
-                    ->setCollectShippingRates(true)
-                    ->setShippingMethod('channelengine_channelengine');
-
-                // Set guest customer
-                $quote->setCustomerId(null)
-                    ->setCustomerEmail($quote->getBillingAddress()->getEmail())
-                    ->setCustomerIsGuest(true)
-                    ->setCustomerGroupId(Mage_Customer_Model_Group::NOT_LOGGED_IN_ID);
-
-                // Set custom payment method
-                $quote->setIsSystem(true);
-                $quote->getPayment()->importData(array('method' => 'channelengine'));
-
-                // Save quote and convert it to new order
-                try
-                {
-                    $quote->save();
-                    $service = Mage::getModel('sales/service_quote', $quote);
-                    $service->submitAll();
-                }
-                catch (Exception $e)
-                {
-                    $this->addAdminNotification(
-                        "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
-                        "Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com"
-                    );
-                    $this->logException($e);
+                $product_data = $product->processCustomerData($quote,$customer,$order);
+                if(!$product_data['status']) {
                     continue;
                 }
-
+                $service = $product_data['service'];
                 $magentoOrder = $service->getOrder();
-
-                if(!$magentoOrder->getIncrementId())
-                {
+                if(!$magentoOrder->getIncrementId()) {
                     $this->log("An order (#{$order->getId()}) could not be imported");
                     continue;
                 }
-
-                try
-                {
-                    // Initialize new invoice model
-                    $invoice = Mage::getModel('sales/service_order', $magentoOrder)->prepareInvoice();
-                    // Add comment to invoice
-                    $invoice->addComment(
-                        "Order paid on the marketplace.",
-                        false,
-                        true
-                    );
-
-                    // Register invoice. Register invoice items. Collect invoice totals.
-                    $invoice->register();
-                    $invoice->getOrder()->setIsInProcess(true);
-
-                    $os = $order->getChannelOrderSupport();
-                    $canShipPartiallyItem = ($os == MerchantOrderResponse::CHANNEL_ORDER_SUPPORT_SPLIT_ORDER_LINES);
-                    $canShipPartially = ($canShipPartiallyItem || $os == MerchantOrderResponse::CHANNEL_ORDER_SUPPORT_SPLIT_ORDERS);
-
-                    // Initialize new channel order
-                    $_channelOrder = Mage::getModel('channelengine/order');
-                    $_channelOrder->setOrderId($magentoOrder->getId())
-                        ->setChannelOrderId($order->getChannelOrderNo())
-                        ->setChannelName($order->getChannelName())
-                        ->setCanShipPartial($canShipPartially);
-
-                    $invoice->getOrder()
-                        ->setCanShipPartiallyItem($canShipPartiallyItem)
-                        ->setCanShipPartially($canShipPartially);
-
-                    // Start new transaction
-                    $transactionSave = Mage::getModel('core/resource_transaction')
-                        ->addObject($invoice)
-                        ->addObject($invoice->getOrder())
-                        ->addObject($_channelOrder);
-                    $transactionSave->save();
-                }
-                catch (Exception $e)
-                {
-                    $this->addAdminNotification(
-                        "An invoice could not be created (order #{$magentoOrder->getIncrementId()}, {$order->getChannelName()} #{$order->getChannelOrderNo()})",
-                        "Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com"
-                    );
-
-                    $this->logException($e);
+                $product->processOrder($magentoOrder,$order);
+                $send_to_ce = $this->ackChannelEngine($magentoOrder,$order,$client);
+                if(!$send_to_ce) {
                     continue;
                 }
 
-
-                try
-                {
-                    // Send order acknowledgement to CE.
-                    $ack = new OrderAcknowledgement();
-                    $ack->setMerchantOrderNo($magentoOrder->getId());
-                    $ack->setOrderId($order->getId());
-                    $response = $client->orderAcknowledge($ack);
-
-                    if(!$response->getSuccess())
-                    {
-                        $this->logApiError($response, $ack);
-                        continue;
-                    }
-                }
-                catch(Exception $e)
-                {
-
-                    $this->logException($e);
-                    continue;
-                }
             }
         }
 
@@ -690,24 +484,6 @@ class Tritac_ChannelEngine_Model_Observer
         return true;
     }
 
-    private function addAdminNotification($title, $message)
-    {
-        // Check if notification already exists
-        $_resource  = Mage::getSingleton('core/resource');
-        $_connectionRead = $_resource->getConnection('core_read');
-        $select = $_connectionRead->select()
-            ->from($_resource->getTableName('adminnotification/inbox'))
-            ->where('title = ?', $title)
-            ->where('is_remove != 1')
-            ->limit(1);
-
-        $data = $_connectionRead->fetchRow($select);
-
-        if ($data) return;
-
-        // Add new notification
-        Mage::getModel('adminnotification/inbox')->addCritical($title, $message);
-    }
 
     /**
      * Join channelengine order fields to adminhtml order grid

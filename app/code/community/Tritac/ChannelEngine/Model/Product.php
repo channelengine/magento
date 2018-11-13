@@ -160,8 +160,6 @@ class Tritac_ChannelEngine_Model_Product extends  Tritac_ChannelEngine_Model_aCh
         {
             // Initialize new invoice model
             $invoice = Mage::getModel('sales/service_order', $magentoOrder)->prepareInvoice();
-
-
             // Add comment to invoice
             $invoice->addComment(
                 "Order paid on the marketplace.",
@@ -173,13 +171,10 @@ class Tritac_ChannelEngine_Model_Product extends  Tritac_ChannelEngine_Model_aCh
             // Register invoice. Register invoice items. Collect invoice totals.
             $invoice->register();
             $invoice->setRequestedCaptureCase(Mage_Sales_Model_Order_Invoice::CAPTURE_OFFLINE);
-
             $invoice->getOrder()->setIsInProcess(true);
-
             $os = $order->getChannelOrderSupport();
             $canShipPartiallyItem = ($os == MerchantOrderResponse::CHANNEL_ORDER_SUPPORT_SPLIT_ORDER_LINES);
             $canShipPartially = ($canShipPartiallyItem || $os == MerchantOrderResponse::CHANNEL_ORDER_SUPPORT_SPLIT_ORDERS);
-
             // Initialize new channel order
             $_channelOrder = Mage::getModel('channelengine/order');
             $_channelOrder->setOrderId($magentoOrder->getId())
@@ -202,8 +197,7 @@ class Tritac_ChannelEngine_Model_Product extends  Tritac_ChannelEngine_Model_aCh
 
             return true;
         }
-        catch (Exception $e)
-        {
+        catch (Exception $e) {
             $this->addAdminNotification(
                 "An invoice could not be created (order #{$magentoOrder->getIncrementId()}, {$order->getChannelName()} #{$order->getChannelOrderNo()})",
                 "Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com"

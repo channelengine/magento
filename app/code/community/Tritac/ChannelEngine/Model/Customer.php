@@ -28,7 +28,7 @@ class Tritac_ChannelEngine_Model_Customer extends  Tritac_ChannelEngine_Model_aC
      */
     public function setBillingData($billingAddress,$order)
     {
-       $this->billing_data =  array(
+        $this->billing_data =  array(
             'company'       => $billingAddress->getCompanyName(),
             'firstname'     => $billingAddress->getFirstName(),
             'lastname'      => $billingAddress->getLastName(),
