@@ -91,10 +91,36 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_aC
         $this->_feedHelper->generateFeeds();
     }
 
+    /**
+     * @param $storeId
+     * @return bool
+     */
+    private function disableMagentoVatCalculation($storeId)
+    {
+        $store = Mage::getModel('core/store')->load($storeId);
+        return Mage::getStoreConfig('channelengine/optional/disable_magento_vat_calculation', $store) == 1;
+    }
+
+    /**
+     * @param $storeId
+     * @return bool
+     */
     private function importFulfilmentOrders($storeId)
     {
         $store = Mage::getModel('core/store')->load($storeId);
         return Mage::getStoreConfig('channelengine/optional/enable_fulfilment_import', $store) == 1;
+    }
+
+    /**
+     * Enable the order import
+     * @param $storeId
+     * @return bool
+     */
+    private function enableOrderImport($storeId)
+    {
+
+        $store = Mage::getModel('core/store')->load($storeId);
+        return Mage::getStoreConfig('channelengine/general/enable_order_import', $store) == 1;
     }
 
     public function fetchFulfilmentOrders()
@@ -186,15 +212,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_aC
         }
     }
 
-    /**
-     * @param $storeId
-     * @return bool
-     */
-    private function disableMagentoVatCalculation($storeId)
-    {
-        $store = Mage::getModel('core/store')->load($storeId);
-        return Mage::getStoreConfig('channelengine/optional/disable_magento_vat_calculation', $store) == 1;
-    }
+
 
     /**
      * Fetch new orders from ChannelEngine.
@@ -214,6 +232,9 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_aC
 
 
         foreach($this->_client['orders'] as $storeId => $client) {
+            if(!$this->enableOrderImport($storeId)) {
+                continue;
+            }
             $orderApi = $this->initOrderApi($client);
             $response =& $orderApi;
             if(!$orderApi) { continue;}
