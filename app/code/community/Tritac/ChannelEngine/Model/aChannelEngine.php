@@ -5,6 +5,39 @@
 class Tritac_ChannelEngine_Model_aChannelEngine
 {
 
+    /**
+     * @param $storeId
+     * @return bool
+     */
+    protected function disableMagentoVatCalculation($storeId)
+    {
+        $store = Mage::getModel('core/store')->load($storeId);
+        return Mage::getStoreConfig('channelengine/optional/disable_magento_vat_calculation', $store) == 1;
+    }
+
+    /**
+     * @param $storeId
+     * @return bool
+     */
+    protected function importFulfilmentOrders($storeId)
+    {
+        $store = Mage::getModel('core/store')->load($storeId);
+        return Mage::getStoreConfig('channelengine/optional/enable_fulfilment_import', $store) == 1;
+    }
+
+    /**
+     * Enable the order import
+     * @param $storeId
+     * @return bool
+     */
+    protected function enableOrderImport($storeId)
+    {
+
+        $store = Mage::getModel('core/store')->load($storeId);
+        return Mage::getStoreConfig('channelengine/general/enable_order_import', $store) == 1;
+    }
+
+
 
     /**
      * @param $magentoOrder
