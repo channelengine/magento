@@ -97,6 +97,13 @@
                 <specificerrmsg>This shipping method is currently unavailable. If you would like to ship using this shipping method, please contact us.</specificerrmsg>
             </channelengine>
         </carriers>
+
+        <channelengine>
+            <general>
+                <enable_order_import>1</enable_order_import>
+            </general>
+        </channelengine>
+
     </default>
 
     <frontend>
