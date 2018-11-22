@@ -178,6 +178,8 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_aC
             }
 
         }
+
+        return true;
     }
 
 

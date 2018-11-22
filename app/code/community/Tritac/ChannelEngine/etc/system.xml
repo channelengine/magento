@@ -216,7 +216,7 @@
                             <label>Import orders</label>
                             <button_label>Manually import orders</button_label>
                             <comment>
-                                <![CDATA[<span class="notice">You need to configure cronjobs on your server to  import orders automatically</span>]]>
+                                <![CDATA[<span class="notice">You need to configure cronjobs on your server to import orders automatically</span>]]>
                             </comment>
                             <ajax_action>orders</ajax_action>
                             <frontend_type>button</frontend_type>
@@ -226,6 +226,21 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </import_orders>
+                        <import_fulfillment_orders translate="button_label">
+                            <label>Import marketplace fulfilled orders</label>
+                            <button_label>Manually import marketplace fulfilled orders</button_label>
+                            <comment>
+                                <![CDATA[<span class="notice">You need to configure cronjobs on your server to import marketplace fulfilled orders automatically</span>]]>
+                            </comment>
+                            <ajax_action>fulfillmentorders</ajax_action>
+                            <frontend_type>button</frontend_type>
+                            <frontend_model>channelengine/adminhtml_system_config_form_button</frontend_model>
+                            <sort_order>5</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_fulfillment_orders>
+
                         <import_returns translate="button_label">
                             <label>Import returns</label>
                             <button_label>Manually import returns</button_label>

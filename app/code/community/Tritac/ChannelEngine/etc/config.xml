@@ -167,14 +167,14 @@
     </adminhtml>
     <crontab>
         <jobs>
-            <channelengine_fulfilmentorders>
+            <channelengine_import_fulfilmentorders>
                 <schedule>
                     <cron_expr>*/5 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>channelengine/observer::fetchFulfilmentOrders</model>
                 </run>
-            </channelengine_fulfilmentorders>
+            </channelengine_import_fulfilmentorders>
             <channelengine_import_orders>
                 <schedule>
                     <cron_expr>*/5 * * * *</cron_expr>

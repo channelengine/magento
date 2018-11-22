@@ -28,6 +28,17 @@ class Tritac_ChannelEngine_Adminhtml_CeController extends Mage_Adminhtml_Control
         }
     }
 
+    public function fulfillmentordersAction()
+    {
+        $observer = Mage::getModel('channelengine/observer');
+        $result = $observer->fetchFulfilmentOrders();
+        if($result) {
+            $this->returnStatus(false, $result);
+        } else {
+            $this->returnStatus(true, $result);
+        }
+    }
+
     public function returnsAction()
     {
         $observer = Mage::getModel('channelengine/observer');
