@@ -160,6 +160,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_aC
                     }
 
                 }
+
                 $customer->setBillingData($billingAddress,$order);
                 $customer->setShippingData($shippingAddress,$order);
                 // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
