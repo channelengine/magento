@@ -2,7 +2,7 @@
 /**
  * Observer model
  */
-class Tritac_ChannelEngine_Model_Customer extends  Tritac_ChannelEngine_Model_aChannelEngine
+class Tritac_ChannelEngine_Model_Customer  extends  Tritac_ChannelEngine_Model_BaseCe
 {
 
     private $billing_data;

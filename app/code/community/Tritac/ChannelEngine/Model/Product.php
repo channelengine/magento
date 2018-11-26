@@ -1,7 +1,7 @@
 <?php
 
 use ChannelEngine\Merchant\ApiClient\Model\MerchantOrderResponse;
-class Tritac_ChannelEngine_Model_Product extends  Tritac_ChannelEngine_Model_aChannelEngine
+class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_BaseCe
 {
 
     /**
