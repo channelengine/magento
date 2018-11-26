@@ -14,7 +14,7 @@ use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentRequest;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentTrackingRequest;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentLineRequest;
 
-class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_aChannelEngine
+class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_BaseCe
 {
     /**
      * The CE logfile path
