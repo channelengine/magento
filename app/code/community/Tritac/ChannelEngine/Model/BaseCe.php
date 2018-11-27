@@ -4,7 +4,7 @@
  */
 class Tritac_ChannelEngine_Model_BaseCe
 {
-
+    const LOGFILE = 'channelengine.log';
     /**
      * @param $storeId
      * @return bool
