@@ -220,7 +220,10 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
 
                 if(count($lines) == 0 || empty($billingAddress)) continue;
                 // Initialize new quote
+                
                 $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
+                $quote->setTotalsCollectedFlag(true);
+
                 foreach($lines as $item) {
                     $product_details = $product->generateProductId($item->getMerchantProductNo());
                     // get order id

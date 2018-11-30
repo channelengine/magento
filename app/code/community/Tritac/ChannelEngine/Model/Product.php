@@ -58,6 +58,9 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
         catch (Exception $e)
         {
 
+
+
+				$this->logException($e);
             $this->addAdminNotification( "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
                 "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com");
             return false;
@@ -90,6 +93,8 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
         // Set custom payment method
         $quote->setIsSystem(true);
         $quote->getPayment()->importData(array('method' => 'channelengine'));
+		$quote->setTotalsCollectedFlag(false);
+		$quote->collectTotals();
 
         // Save quote and convert it to new order
         try
