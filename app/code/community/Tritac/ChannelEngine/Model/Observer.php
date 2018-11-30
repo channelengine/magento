@@ -176,7 +176,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                 }
                 $service = $product_data['service'];
                 $magentoOrder = $service->getOrder();
-                $product->processOrder($magentoOrder,$order);
+                $product->processOrder($magentoOrder,$order, true);
             }
 
         }
@@ -222,7 +222,6 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                 // Initialize new quote
                 
                 $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
-                $quote->setTotalsCollectedFlag(true);
 
                 foreach($lines as $item) {
                     $product_details = $product->generateProductId($item->getMerchantProductNo());
@@ -238,6 +237,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                     // Load magento product
                     $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
                     $_product->load($productId);
+
                     // If the product can't be found by ID, fall back on the SKU.
                     if(!$_product->getId()){
                         $productId = $_product->getIdBySku($productNo);
@@ -251,7 +251,9 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                     $params = new Varien_Object();
                     $params->setQty($item->getQuantity());
                     $params->setOptions($productOptions);
+
                     $add_product_to_quote = $product->addProductToQuote($_product, $productId, $quote, $params, $item, $order, $productNo);
+                    
                     if (!$add_product_to_quote) {
                         continue 2;
                     }
@@ -275,7 +277,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                     $this->log("An order (#{$order->getId()}) could not be imported");
                     continue;
                 }
-                $product->processOrder($magentoOrder,$order);
+                $product->processOrder($magentoOrder,$order, false);
                 $send_to_ce = $this->ackChannelEngine($magentoOrder,$order,$client);
                 if(!$send_to_ce) {
                     continue;

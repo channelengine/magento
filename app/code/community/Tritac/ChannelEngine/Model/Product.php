@@ -13,9 +13,9 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
         $ids = explode('_', $product_number);
         $productId = $ids[0];
         return [
-            'product_id'=>$productId,
-            'productNo'=>$product_number,
-            'ids'=>$ids
+            'id' => $productId,
+            'productNo' => $product_number,
+            'ids' => $ids
         ];
     }
 
@@ -36,8 +36,7 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
         {
             if(!$_product->getId())
             {
-                Mage::throwException('Cannot find product: ' . $productId);
-
+                Mage::throwException('Cannot find product: ' . $productNo );
             }
 
             $_quoteItem = $quote->addProduct($_product, $params);
@@ -45,7 +44,6 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
             {
                 // Magento sometimes returns a string when the method fails. -_-"
                 Mage::throwException('Failed to create quote item: ' . $_quoteItem);
-
             }
 
             $price = $item->getUnitPriceInclVat();
@@ -57,10 +55,7 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
         }
         catch (Exception $e)
         {
-
-
-
-				$this->logException($e);
+			$this->logException($e);
             $this->addAdminNotification( "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
                 "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com");
             return false;
@@ -75,6 +70,8 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
      */
     public function processCustomerData($quote,$customer,$order)
     {
+        $quote->setTotalsCollectedFlag(true);
+
         $quote->getBillingAddress()
             ->addData($customer->getBillingData());
 
@@ -159,7 +156,7 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
      * @param $order
      * @return bool]
      */
-    public function processOrder($magentoOrder,$order)
+    public function processOrder($magentoOrder,$order, $setShipped)
     {
         try
         {
@@ -171,7 +168,6 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
                 false,
                 true
             );
-
 
             // Register invoice. Register invoice items. Collect invoice totals.
             $invoice->register();
@@ -197,9 +193,11 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
                 ->addObject($invoice->getOrder())
                 ->addObject($_channelOrder);
             $transactionSave->save();
-            $this->setOrderToShipped($magentoOrder);
 
-
+            if($setShipped) {
+                $this->setOrderToShipped($magentoOrder);
+            }
+            
             return true;
         }
         catch (Exception $e) {
