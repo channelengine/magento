@@ -132,6 +132,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
 
                 // Initialize new quote
                 $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
+                $quote->setInventoryProcessed(true);
                 foreach($lines as $item) {
                     $product_details = $product->generateProductId($item->getMerchantProductNo());
                     $productId = $product_details['id'];
@@ -239,12 +240,10 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                         $productId = $_product->getIdBySku($productNo);
                         $_product->load($productId);
                     }
-
                     // visable vat
                     if($this->disableMagentoVatCalculation($storeId)) {
                         $_product->setTaxClassId(0);
                     }
-
                     // Prepare product parameters for quote
                     $params = new Varien_Object();
                     $params->setQty($item->getQuantity());
@@ -256,7 +255,6 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                 }
 
                 $phone = $customer->formatPhone($order);
-
                 $customer->setBillingData($billingAddress,$order);
                 $customer->setShippingData($shippingAddress,$order);
                 // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
