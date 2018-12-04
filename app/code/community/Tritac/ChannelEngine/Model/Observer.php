@@ -97,88 +97,88 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
         if(is_null($this->_client)) return false;
         $customer = new Tritac_ChannelEngine_Model_Customer();
         $product = new Tritac_ChannelEngine_Model_Product();
-        $from_date = date('Y-m-d',strtotime('-5 days')) .' 00:00:00';
+        $from_date = date('Y-m-d',strtotime('-100 days')) .' 00:00:00';
         $to_date = date('Y-m-d').' 23:59:59';
         foreach($this->_client['orders'] as $storeId => $client) {
-            if(!$this->importFulfilmentOrders($storeId)) {
+            if (!$this->importFulfilmentOrders($storeId)) {
                 continue;
             }
-            $response = null;
-            try {
+            $get_count_response = $response = $client->orderGetByFilter('SHIPPED', null, $from_date, $to_date, null, 'ONLY_CHANNEL');
+            $total_count = ceil(intval($get_count_response['totalCount']) / 100);
+            for ($page = 1; $page <= $total_count; $page++) {
+                try {
 
-                $response = $client->orderGetByFilter('SHIPPED', null, $from_date, $to_date, null, 'ONLY_CHANNEL');
-                if(!$response->getSuccess())
-                {
-                    $this->logApiError($response);
-                    continue;
-                }
-            }
-            catch (Exception $e) {
-                $this->logException($e);
-                continue;
-            }
-
-            if($response->getCount() == 0) continue;
-            foreach($response->getContent() as $order)
-            {
-                $lines = $order->getLines();
-                $billingAddress = $order->getBillingAddress();
-                $shippingAddress = $order->getShippingAddress();
-                if(count($lines) == 0 || empty($billingAddress)) continue;
-                $hasChannelOrder = Mage::getModel('channelengine/order') ->getCollection()->addFilter('channel_order_id',$order->getChannelOrderNo())->count();
-                if($hasChannelOrder > 0) {
-                    continue;
-                }
-
-                // Initialize new quote
-                $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
-                $quote->setInventoryProcessed(true);
-                foreach($lines as $item) {
-                    $product_details = $product->generateProductId($item->getMerchantProductNo());
-                    $productId = $product_details['id'];
-                    $productOptions = array();
-                    $ids = $product_details['ids'];
-                    if (count($ids) == 3) {
-                        $productOptions = array($ids[1] => intval($ids[2]));
+                    $response = $client->orderGetByFilter('SHIPPED', null, $from_date, $to_date, null, 'ONLY_CHANNEL', $page);
+                    if (!$response->getSuccess()) {
+                        $this->logApiError($response);
+                        continue;
                     }
-                    $productNo = $product_details['productNo'];
-                    // Load magento product
-                    $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
-                    $_product->load($productId);
-                    if (!$_product->getId()) {
-                        // If the product can't be found by ID, fall back on the SKU.
-                        $productId = $_product->getIdBySku($productNo);
+                } catch (Exception $e) {
+                    $this->logException($e);
+                    continue;
+                }
+
+                if ($response->getCount() == 0) continue;
+                foreach ($response->getContent() as $order) {
+                    $lines = $order->getLines();
+                    $billingAddress = $order->getBillingAddress();
+                    $shippingAddress = $order->getShippingAddress();
+                    if (count($lines) == 0 || empty($billingAddress)) continue;
+                    $hasChannelOrder = Mage::getModel('channelengine/order')->getCollection()->addFilter('channel_order_id', $order->getChannelOrderNo())->count();
+                    if ($hasChannelOrder > 0) {
+                        continue;
+                    }
+
+                    // Initialize new quote
+                    $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
+                    $quote->setInventoryProcessed(true);
+                    foreach ($lines as $item) {
+                        $product_details = $product->generateProductId($item->getMerchantProductNo());
+                        $productId = $product_details['id'];
+                        $productOptions = array();
+                        $ids = $product_details['ids'];
+                        if (count($ids) == 3) {
+                            $productOptions = array($ids[1] => intval($ids[2]));
+                        }
+                        $productNo = $product_details['productNo'];
+                        // Load magento product
+                        $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
                         $_product->load($productId);
+                        if (!$_product->getId()) {
+                            // If the product can't be found by ID, fall back on the SKU.
+                            $productId = $_product->getIdBySku($productNo);
+                            $_product->load($productId);
+
+                        }
+                        // Prepare product parameters for quote
+                        $params = new Varien_Object();
+                        $params->setQty($item->getQuantity());
+                        $params->setOptions($productOptions);
+                        $add_product_to_quote = $product->addProductToQuote($_product, $productId, $quote, $params, $item, $order, $productNo);
+                        if (!$add_product_to_quote) {
+                            continue 2;
+                        }
 
                     }
-                    // Prepare product parameters for quote
-                    $params = new Varien_Object();
-                    $params->setQty($item->getQuantity());
-                    $params->setOptions($productOptions);
-                    $add_product_to_quote = $product->addProductToQuote($_product, $productId, $quote, $params, $item, $order, $productNo);
-                    if (!$add_product_to_quote) {
-                        continue 2;
+
+                    $customer->setBillingData($billingAddress, $order);
+                    $customer->setShippingData($shippingAddress, $order);
+                    // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
+                    Mage::register('channelengine_shipping_amount', floatval($order->getShippingCostsInclVat()));
+                    // Set this value to make sure ChannelEngine requested the rates and not the frontend
+                    // because the shipping method has a fallback on 0,- and this will make it show up on the frontend
+                    Mage::register('channelengine_shipping', true);
+
+                    $product_data = $product->processCustomerData($quote, $customer, $order);
+                    if (!$product_data['status']) {
+                        continue;
                     }
-
+                    $service = $product_data['service'];
+                    $magentoOrder = $service->getOrder();
+                    $product->processOrder($magentoOrder, $order, true);
                 }
 
-                $customer->setBillingData($billingAddress,$order);
-                $customer->setShippingData($shippingAddress,$order);
-                // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
-                Mage::register('channelengine_shipping_amount', floatval($order->getShippingCostsInclVat()));
-                // Set this value to make sure ChannelEngine requested the rates and not the frontend
-                // because the shipping method has a fallback on 0,- and this will make it show up on the frontend
-                Mage::register('channelengine_shipping', true);
-
-                $product_data = $product->processCustomerData($quote,$customer,$order);
-                if(!$product_data['status']) {
-                    continue;
-                }
-                $service = $product_data['service'];
-                $magentoOrder = $service->getOrder();
-                $product->processOrder($magentoOrder,$order, true);
             }
-
         }
 
         return true;
