@@ -158,7 +158,6 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                         if (!$add_product_to_quote) {
                             continue 2;
                         }
-
                     }
 
                     $customer->setBillingData($billingAddress, $order);
@@ -211,8 +210,6 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
             $response =& $orderApi;
             if(!$orderApi) { continue;}
             if($response->getCount() == 0) continue;
-
-
             foreach($response->getContent() as $order) {
                 $billingAddress = $order->getBillingAddress();
                 $shippingAddress = $order->getShippingAddress();
@@ -302,15 +299,11 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
         $_shipment = $event->getShipment();
         /** @var $_order Mage_Sales_Model_Order */
         $_order = $_shipment->getOrder();
-
         $storeId = $_order->getStoreId();
-
         $ceOrder = Mage::getModel('channelengine/order')->loadByOrderId($_order->getId());
         if($ceOrder->getId() == null) return true;
-
         $errorTitle = "A shipment (#{$_shipment->getId()}) could not be updated";
         $errorMessage = "Please contact ChannelEngine support at support@channelengine.com";
-
         // Check if the API client was initialized for this order
         if(!isset($this->_client[$storeId])) return false;
 
