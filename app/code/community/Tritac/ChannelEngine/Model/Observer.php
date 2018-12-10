@@ -106,6 +106,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
             $get_count_response = $response = $client->orderGetByFilter('SHIPPED', null, $from_date, $to_date, null, 'ONLY_CHANNEL');
             $total_count = ceil(intval($get_count_response['totalCount']) / 100);
             for ($page = 1; $page <= $total_count; $page++) {
+                $response = null;
                 try {
 
                     $response = $client->orderGetByFilter('SHIPPED', null, $from_date, $to_date, null, 'ONLY_CHANNEL', $page);
@@ -132,6 +133,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                     // Initialize new quote
                     $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
                     $quote->setInventoryProcessed(true);
+                    $quote->setIsSuperMode(true);
                     foreach ($lines as $item) {
                         $product_details = $product->generateProductId($item->getMerchantProductNo());
                         $productId = $product_details['id'];
@@ -219,6 +221,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                 // Initialize new quote
                 
                 $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
+                $quote->setIsSuperMode(true);
 
                 foreach($lines as $item) {
                     $product_details = $product->generateProductId($item->getMerchantProductNo());
@@ -301,11 +304,13 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
         $_order = $_shipment->getOrder();
         $storeId = $_order->getStoreId();
         $ceOrder = Mage::getModel('channelengine/order')->loadByOrderId($_order->getId());
-        if($ceOrder->getId() == null) return true;
+
+        if(!$ceOrder || $ceOrder->getId() == null) return true;
+
         $errorTitle = "A shipment (#{$_shipment->getId()}) could not be updated";
         $errorMessage = "Please contact ChannelEngine support at support@channelengine.com";
         // Check if the API client was initialized for this order
-        if(!isset($this->_client[$storeId])) return false;
+        if(!isset($this->_client['shipment'][$storeId])) return false;
 
         $shipmentApi = $this->_client['shipment'][$storeId];
 
@@ -380,6 +385,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
 
             $ceShipmentLine = new MerchantShipmentLineRequest();
             $ceShipmentLine->setMerchantProductNo($_shipmentItem->getProductId());
+            //$ceShipmentLine->setMerchantProductNo($_shipmentItem->getSku());
             $ceShipmentLine->setQuantity($shippedQty);
             $ceShipmentLines[] = $ceShipmentLine;
         }
