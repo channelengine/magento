@@ -13,6 +13,9 @@ use ChannelEngine\Merchant\ApiClient\Model\OrderAcknowledgement;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentRequest;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentTrackingRequest;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentLineRequest;
+use ChannelEngine\Merchant\ApiClient\Model\MerchantCancellationRequest;
+use \ChannelEngine\Merchant\ApiClient\Model\MerchantCancellationLineRequest;
+use ChannelEngine\Merchant\ApiClient\Api\CancellationApi;
 
 class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_BaseCe
 {
@@ -68,7 +71,6 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
         $this->_feedHelper = Mage::helper('channelengine/feed');
         $this->_hasPostNL = Mage::helper('core')->isModuleEnabled('TIG_PostNL');
         $this->_config = $this->_helper->getConfig();
-
         /**
          * Check required config parameters. Initialize API client.
          */
@@ -80,6 +82,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                 $this->_client['orders'][$storeId] = new OrderApi(null,$apiConfig);
                 $this->_client['returns'][$storeId] = new ReturnApi(null,$apiConfig);
                 $this->_client['shipment'][$storeId] = new ShipmentApi(null,$apiConfig);
+                $this->_client['cancellation'][$storeId] = new CancellationApi(null,$apiConfig);
 
             }
         }
@@ -91,12 +94,17 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
         $this->_feedHelper->generateFeeds();
     }
 
+    /**
+     * Fetch the fulfilment orders
+     * @return bool
+     */
     public function fetchFulfilmentOrders()
     {
 
         if(is_null($this->_client)) return false;
         $customer = new Tritac_ChannelEngine_Model_Customer();
         $product = new Tritac_ChannelEngine_Model_Product();
+        $productQuote = new Tritac_ChannelEngine_Model_Quote();
         $from_date = date('Y-m-d',strtotime('-100 days')) .' 00:00:00';
         $to_date = date('Y-m-d').' 23:59:59';
         foreach($this->_client['orders'] as $storeId => $client) {
@@ -108,7 +116,6 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
             for ($page = 1; $page <= $total_count; $page++) {
                 $response = null;
                 try {
-
                     $response = $client->orderGetByFilter('SHIPPED', null, $from_date, $to_date, null, 'ONLY_CHANNEL', $page);
                     if (!$response->getSuccess()) {
                         $this->logApiError($response);
@@ -129,39 +136,12 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                     if ($hasChannelOrder > 0) {
                         continue;
                     }
-
                     // Initialize new quote
                     $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
-                    $quote->setInventoryProcessed(true);
-                    $quote->setIsSuperMode(true);
-                    foreach ($lines as $item) {
-                        $product_details = $product->generateProductId($item->getMerchantProductNo());
-                        $productId = $product_details['id'];
-                        $productOptions = array();
-                        $ids = $product_details['ids'];
-                        if (count($ids) == 3) {
-                            $productOptions = array($ids[1] => intval($ids[2]));
-                        }
-                        $productNo = $product_details['productNo'];
-                        // Load magento product
-                        $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
-                        $_product->load($productId);
-                        if (!$_product->getId()) {
-                            // If the product can't be found by ID, fall back on the SKU.
-                            $productId = $_product->getIdBySku($productNo);
-                            $_product->load($productId);
-
-                        }
-                        // Prepare product parameters for quote
-                        $params = new Varien_Object();
-                        $params->setQty($item->getQuantity());
-                        $params->setOptions($productOptions);
-                        $add_product_to_quote = $product->addProductToQuote($_product, $productId, $quote, $params, $item, $order, $productNo);
-                        if (!$add_product_to_quote) {
-                            continue 2;
-                        }
+                    $prepare_quote = $productQuote->prepareQuoteOrder($lines,$product,$storeId,$order,$quote);
+                    if(!$prepare_quote) {
+                        continue 2;
                     }
-
                     $customer->setBillingData($billingAddress, $order);
                     $customer->setShippingData($shippingAddress, $order);
                     // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
@@ -169,8 +149,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                     // Set this value to make sure ChannelEngine requested the rates and not the frontend
                     // because the shipping method has a fallback on 0,- and this will make it show up on the frontend
                     Mage::register('channelengine_shipping', true);
-
-                    $product_data = $product->processCustomerData($quote, $customer, $order);
+                    $product_data = $productQuote->processCustomerData($quote, $customer, $order);
                     if (!$product_data['status']) {
                         continue;
                     }
@@ -183,6 +162,36 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
         }
 
         return true;
+    }
+
+
+    /**
+     * Cancel an order and send to CE the cancellation
+     * @param Varien_Event_Observer $observer
+     */
+    public function creditCancellation(Varien_Event_Observer $observer)
+    {
+        $creditmemo = $observer->getEvent()->getCreditmemo();
+        $order = $creditmemo->getOrder();
+        $order_id = $order->getId();
+        $storeId = $creditmemo->getStoreId();
+        $order_lines = $creditmemo->getAllItems();
+        $lines = [];
+        foreach ($order_lines as $item) {
+            $lines[] = new MerchantCancellationLineRequest(['merchantProductNo'=>$item->getSku(),'quantity'=>$item->getQty()]);
+        }
+        $cancellationApi = $this->_client['cancellation'][$storeId];
+        $cancelationCreate = new MerchantCancellationRequest();
+        $cancelationCreate->setMerchantCancellationNo($order_id);
+        $cancelationCreate->setMerchantOrderNo($order_id);
+        $cancelationCreate->setLines($lines);
+        try {
+            $cancellationApi->cancellationCreate($cancelationCreate);
+        } catch (\Exception $e) {
+            $this->logException($e);
+
+        }
+
     }
 
 
@@ -199,11 +208,9 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
          * Check if client is initialized
          */
         $product = new Tritac_ChannelEngine_Model_Product();
+        $productQuote = new Tritac_ChannelEngine_Model_Quote();
         $customer = new Tritac_ChannelEngine_Model_Customer();
-
         if(is_null($this->_client['orders'])) return false;
-
-
         foreach($this->_client['orders'] as $storeId => $client) {
             if(!$this->enableOrderImport($storeId)) {
                 continue;
@@ -216,50 +223,12 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                 $billingAddress = $order->getBillingAddress();
                 $shippingAddress = $order->getShippingAddress();
                 $lines = $order->getLines();
-
                 if(count($lines) == 0 || empty($billingAddress)) continue;
-                // Initialize new quote
-                
                 $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
-                $quote->setIsSuperMode(true);
-
-                foreach($lines as $item) {
-                    $product_details = $product->generateProductId($item->getMerchantProductNo());
-                    // get order id
-                    $productId = $product_details['id'];
-                    $productOptions = array();
-                    $ids = $product_details['ids'];
-                    if (count($ids) == 3) {
-                        $productOptions = array($ids[1] => intval($ids[2]));
-                    }
-                    $productNo = $product_details['productNo'];
-
-                    // Load magento product
-                    $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
-                    $_product->load($productId);
-
-                    // If the product can't be found by ID, fall back on the SKU.
-                    if(!$_product->getId()){
-                        $productId = $_product->getIdBySku($productNo);
-                        $_product->load($productId);
-                    }
-                    // visable vat
-                    if($this->disableMagentoVatCalculation($storeId)) {
-                        $_product->setTaxClassId(0);
-                    }
-                    // Prepare product parameters for quote
-                    $params = new Varien_Object();
-                    $params->setQty($item->getQuantity());
-                    $params->setOptions($productOptions);
-
-                    $add_product_to_quote = $product->addProductToQuote($_product, $productId, $quote, $params, $item, $order, $productNo);
-                    
-                    if (!$add_product_to_quote) {
-                        continue 2;
-                    }
+                $prepare_quote = $productQuote->prepareQuoteOrder($lines,$product,$storeId,$order,$quote);
+                if(!$prepare_quote) {
+                    continue 2;
                 }
-
-                $phone = $customer->formatPhone($order);
                 $customer->setBillingData($billingAddress,$order);
                 $customer->setShippingData($shippingAddress,$order);
                 // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
@@ -267,7 +236,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                 // Set this value to make sure ChannelEngine requested the rates and not the frontend
                 // because the shipping method has a fallback on 0,- and this will make it show up on the frontend
                 Mage::register('channelengine_shipping', true);
-                $product_data = $product->processCustomerData($quote,$customer,$order);
+                $product_data = $productQuote->processCustomerData($quote,$customer,$order);
                 if(!$product_data['status']) {
                     continue;
                 }
@@ -282,12 +251,12 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                 if(!$send_to_ce) {
                     continue;
                 }
-
             }
         }
-
         return true;
     }
+
+
     /**
      * Post new shipment to ChannelEngine. This function is set in extension config file.
      *
