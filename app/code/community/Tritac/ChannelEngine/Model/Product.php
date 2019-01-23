@@ -4,6 +4,10 @@ use ChannelEngine\Merchant\ApiClient\Model\MerchantOrderResponse;
 class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_BaseCe
 {
 
+
+
+
+
     /**
      * @param $product_number
      * @return array
@@ -19,104 +23,6 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
         ];
     }
 
-    /**
-     * @param $_product
-     * @param $productId
-     * @param $quote
-     * @param $params
-     * @param $item
-     * @param $order
-     * @param $productNo
-     * @return bool
-     */
-    public function addProductToQuote($_product,$productId,$quote,$params,$item,$order,$productNo)
-    {
-        // Add product to quote
-        try
-        {
-            if(!$_product->getId())
-            {
-                Mage::throwException('Cannot find product: ' . $productNo );
-            }
-
-            $_quoteItem = $quote->addProduct($_product, $params);
-            if(is_string($_quoteItem))
-            {
-                // Magento sometimes returns a string when the method fails. -_-"
-                Mage::throwException('Failed to create quote item: ' . $_quoteItem);
-            }
-
-            $price = $item->getUnitPriceInclVat();
-            $_quoteItem->setOriginalCustomPrice($price);
-            $_quoteItem->setCustomPrice($price);
-            $_quoteItem->getProduct()->setIsSuperMode(true);
-            return true;
-
-        }
-        catch (Exception $e)
-        {
-			$this->logException($e);
-            $this->addAdminNotification( "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
-                "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com");
-            return false;
-        }
-    }
-
-    /**
-     * @param $quote
-     * @param $customer
-     * @param $order
-     * @return array
-     */
-    public function processCustomerData($quote,$customer,$order)
-    {
-        $quote->setTotalsCollectedFlag(true);
-
-        $quote->getBillingAddress()
-            ->addData($customer->getBillingData());
-
-        $quote->getShippingAddress()
-            ->addData($customer->getShippingData())
-            ->setSaveInAddressBook(0)
-            ->setCollectShippingRates(true)
-            ->setShippingMethod('channelengine_channelengine');
-
-        // Set guest customer
-        $quote->setCustomerId(null)
-            ->setCustomerEmail($quote->getBillingAddress()->getEmail())
-            ->setCustomerIsGuest(true)
-            ->setCustomerGroupId(Mage_Customer_Model_Group::NOT_LOGGED_IN_ID);
-
-        // Set custom payment method
-        $quote->setIsSystem(true);
-        $quote->getPayment()->importData(array('method' => 'channelengine'));
-		$quote->setTotalsCollectedFlag(false);
-		$quote->collectTotals();
-
-        // Save quote and convert it to new order
-        try
-        {
-            $quote->save();
-            $service = Mage::getModel('sales/service_quote', $quote);
-            $service->submitAll();
-            return [
-                'status'=>true,
-                'service'=>$service
-            ];
-
-        }
-        catch (Exception $e)
-        {
-            $this->addAdminNotification(
-                "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
-                "Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com"
-            );
-            $this->logException($e);
-            return [
-                'status'=>false
-            ];
-        }
-    }
 
 
     /**

@@ -55,6 +55,18 @@
             </channelengine_write>
         </resources>
         <events>
+
+            <sales_order_creditmemo_save_after>
+                <observers>
+                    <shipmentsave>
+                        <type>singleton</type>
+                        <class>channelengine/observer</class>
+                        <method>creditCancellation</method>
+                    </shipmentsave>
+                </observers>
+            </sales_order_creditmemo_save_after>
+
+
             <sales_order_shipment_save_after>
                 <observers>
                     <shipmentsave>
