@@ -528,7 +528,6 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	    $mappedSystemAttributes = array(
 	        'sku',
 	        'name',
-	        'manufacturer',
 	        'description',
 	        'short_description',
 	        'price',
@@ -537,6 +536,12 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	        'visibility',
 	        'msrp'
 	    );
+
+        $manufacturer = Mage::getResourceModel('catalog/eav_attribute')
+            ->loadByCode(Mage_Catalog_Model_Product::ENTITY, 'manufacturer');
+        if ($manufacturer->getId() !== null) {
+            $mappedSystemAttributes[] = $manufacturer->getAttributeCode();
+        }
 
 	    $hiddenSystemAttributes = array(
 	    	'msrp_display_actual_price_type',
