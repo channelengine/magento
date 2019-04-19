@@ -537,8 +537,8 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 	        'msrp'
 	    );
 
-        $manufacturer = Mage::getResourceModel('catalog/eav_attribute')
-            ->loadByCode(Mage_Catalog_Model_Product::ENTITY, 'manufacturer');
+        $manufacturer = Mage::getSingleton('eav/config')
+            ->getAttribute(Mage_Catalog_Model_Product::ENTITY, 'manufacturer');
         if ($manufacturer->getId() !== null) {
             $mappedSystemAttributes[] = $manufacturer->getAttributeCode();
         }
