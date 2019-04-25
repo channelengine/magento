@@ -1,4 +1,8 @@
 <?php
+if (!Mage::helper('channelengine')->isConnected(Mage::app()->getStore()->getId())) {
+    return;
+}
+
 $order = Mage::getModel('sales/order')->load(Mage::getSingleton('checkout/session')->getLastOrderId());
 $jsonOrder = array(
     "merchantOrderNo" => $order->getId(),
