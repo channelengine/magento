@@ -176,15 +176,25 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
         $order_id = $order->getId();
         $storeId = $creditmemo->getStoreId();
         $order_lines = $creditmemo->getAllItems();
+        
+        $ceOrder = Mage::getModel('channelengine/order')->loadByOrderId($order_id);
+        if(!$ceOrder || $ceOrder->getId() == null) return true;
+        
+        // Check if the API client was initialized for this order
+        if(!isset($this->_client['cancellation'][$storeId])) return false; 
+
         $lines = [];
+        
         foreach ($order_lines as $item) {
             $lines[] = new MerchantCancellationLineRequest(['merchantProductNo'=>$item->getSku(),'quantity'=>$item->getQty()]);
         }
+        
         $cancellationApi = $this->_client['cancellation'][$storeId];
         $cancelationCreate = new MerchantCancellationRequest();
         $cancelationCreate->setMerchantCancellationNo($order_id);
         $cancelationCreate->setMerchantOrderNo($order_id);
         $cancelationCreate->setLines($lines);
+        
         try {
             $cancellationApi->cancellationCreate($cancelationCreate);
         } catch (\Exception $e) {
