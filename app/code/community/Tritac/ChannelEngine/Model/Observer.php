@@ -458,21 +458,6 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
     }
 
 
-    /**
-     * Join channelengine order fields to adminhtml order grid
-     *
-     * @param $observer
-     */
-    /*public function prepareOrderGridCollection($observer)
-    {
-        $collection = $observer->getOrderGridCollection();
-        $joinTableName = Mage::getSingleton('core/resource')->getTableName('channelengine/order');
-        $collection->getSelect()->joinLeft(
-            array('channel_order_table' => $joinTableName),
-            'channel_order_table.order_id = main_table.entity_id',
-            array('channel_name', 'channel_order_id')
-        );
-    }*/
 
     /**
      * Add channelengine order fields to adminhtml order grid
