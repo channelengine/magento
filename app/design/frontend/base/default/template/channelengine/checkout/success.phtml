@@ -1,41 +1,43 @@
 <?php
-$order = Mage::getModel('sales/order')->load(Mage::getSingleton('checkout/session')->getLastOrderId());
-$jsonOrder = array(
-    "merchantOrderNo" => $order->getId(),
-    "total" => $order->getGrandTotal(),
-    "vat" => $order->getTaxRefunded() ? $order->getTaxRefunded() : 0,
-    "shippingCost" => $order->getShippingAmount() ? $order->getShippingAmount() : 0,
-    "city" => $order->getBillingAddress()->getCity(),
-    "country" => $order->getBillingAddress()->getCountry(),
-    "orderLines" => array()
-);
-
-foreach($order->getAllItems() as $item) {
-    $categoryIds = Mage::getModel('catalog/product')->load($item->getProductId())->getCategoryIds();
-    $categoryId = end($categoryIds);
-    $category = Mage::getModel('catalog/category')->load($categoryId);
-    $path = explode('/', $category->getPath());
-    $categoryPath = '';
-
-    foreach($path as $catId) {
-        if($catId > 2) {
-            $cat = Mage::getModel('catalog/category')->load($catId);
-            if($categoryPath != '') {
-                $categoryPath .= ' > ';
-            }
-            $categoryPath .= $cat->getName();
-        }
-    }
-
-    $jsonOrder["orderLines"][] = array(
-        "merchantProductNo" => $item->getProductId(),
-        "name" => $item->getProduct()->getName(),
-        "category" => $categoryPath,
-        "price" => $item->getProduct()->getPrice(),
-        "quantity" => intval($item->getQtyOrdered())
+if (Mage::helper('channelengine')->isConnected(Mage::app()->getStore()->getId())) {
+    $order = Mage::getModel('sales/order')->load(Mage::getSingleton('checkout/session')->getLastOrderId());
+    $jsonOrder = array(
+        "merchantOrderNo" => $order->getId(),
+        "total" => $order->getGrandTotal(),
+        "vat" => $order->getTaxRefunded() ? $order->getTaxRefunded() : 0,
+        "shippingCost" => $order->getShippingAmount() ? $order->getShippingAmount() : 0,
+        "city" => $order->getBillingAddress()->getCity(),
+        "country" => $order->getBillingAddress()->getCountry(),
+        "orderLines" => array()
     );
-}
-?>
-<script>
-    ce('track:order', <?php echo(json_encode($jsonOrder)); ?>);
-</script>
+
+    foreach($order->getAllItems() as $item) {
+        $categoryIds = Mage::getModel('catalog/product')->load($item->getProductId())->getCategoryIds();
+        $categoryId = end($categoryIds);
+        $category = Mage::getModel('catalog/category')->load($categoryId);
+        $path = explode('/', $category->getPath());
+        $categoryPath = '';
+
+        foreach($path as $catId) {
+            if($catId > 2) {
+                $cat = Mage::getModel('catalog/category')->load($catId);
+                if($categoryPath != '') {
+                    $categoryPath .= ' > ';
+                }
+                $categoryPath .= $cat->getName();
+            }
+        }
+
+        $jsonOrder["orderLines"][] = array(
+            "merchantProductNo" => $item->getProductId(),
+            "name" => $item->getProduct()->getName(),
+            "category" => $categoryPath,
+            "price" => $item->getProduct()->getPrice(),
+            "quantity" => intval($item->getQtyOrdered())
+        );
+    }
+    ?>
+    <script>
+        ce('track:order', <?php echo(json_encode($jsonOrder)); ?>);
+    </script>
+<?php } ?>
