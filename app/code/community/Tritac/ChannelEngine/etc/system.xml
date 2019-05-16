@@ -146,6 +146,18 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </expected_date>
+                        <copy_attributes translate="label">
+                            <label>Copy attribute values to child products</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>
+                                <![CDATA[<span class="notice">Copies the custom attribute value's from configurable products to their children during feed generation.</span>]]>
+                            </comment>
+                            <sort_order>6</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </copy_attributes>
                     </fields>
                 </optional>
                 <diagnostics>
