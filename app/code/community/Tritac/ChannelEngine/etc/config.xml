@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Tritac_ChannelEngine>
-            <version>5.4.8</version>
+            <version>5.5.5</version>
         </Tritac_ChannelEngine>
     </modules>
     <global>
@@ -55,6 +55,18 @@
             </channelengine_write>
         </resources>
         <events>
+
+            <sales_order_creditmemo_save_after>
+                <observers>
+                    <shipmentsave>
+                        <type>singleton</type>
+                        <class>channelengine/observer</class>
+                        <method>creditCancellation</method>
+                    </shipmentsave>
+                </observers>
+            </sales_order_creditmemo_save_after>
+
+
             <sales_order_shipment_save_after>
                 <observers>
                     <shipmentsave>
@@ -97,6 +109,13 @@
                 <specificerrmsg>This shipping method is currently unavailable. If you would like to ship using this shipping method, please contact us.</specificerrmsg>
             </channelengine>
         </carriers>
+
+        <channelengine>
+            <general>
+                <enable_order_import>1</enable_order_import>
+            </general>
+        </channelengine>
+
     </default>
 
     <frontend>
@@ -160,6 +179,14 @@
     </adminhtml>
     <crontab>
         <jobs>
+            <channelengine_import_fulfilmentorders>
+                <schedule>
+                    <cron_expr>*/5 * * * *</cron_expr>
+                </schedule>
+                <run>
+                    <model>channelengine/observer::fetchFulfilmentOrders</model>
+                </run>
+            </channelengine_import_fulfilmentorders>
             <channelengine_import_orders>
                 <schedule>
                     <cron_expr>*/5 * * * *</cron_expr>

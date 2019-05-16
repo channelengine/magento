@@ -3,13 +3,13 @@
   "description": "ChannelEngine Magento",
   "license": "proprietary",
   "authors": [
-      {
-          "name": "Christiaan de Ridder",
-          "email": "christiaan@channelengine.com"
-      }
+    {
+      "name": "Christiaan de Ridder",
+      "email": "christiaan@channelengine.com"
+    }
   ],
   "require": {
-    "channelengine/api-client-php": "~2.3.0"
+    "channelengine/merchant-api-client-php": " ~2.6.7"
   },
   "type": "magento-module"
 }
