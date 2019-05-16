@@ -263,8 +263,8 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 
 		$childProducts = $childProductCollection->getItems();
 
-        $copyCustomAttributes = Mage::getStoreConfig('channelengine/optional/copy_attributes', $store);
-        $productAttributeData = $copyCustomAttributes ? array_intersect_key($productData, $customAttributes) : [];
+		$copyCustomAttributes = Mage::getStoreConfig('channelengine/optional/copy_attributes', $store);
+		$productAttributeData = $copyCustomAttributes ? array_intersect_key($productData, $customAttributes) : [];
 
 		foreach($childProducts as $child)
 		{
