@@ -124,6 +124,20 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 
 		$select = $collection->getSelect();
 
+        $isActiveAttribute = Mage::getSingleton('eav/config')->getAttribute(Mage_Catalog_Model_Category::ENTITY, 'is_active');
+		$categoryIsActiveSubQuery =  Mage::getSingleton('core/resource')->getConnection('read')->select();
+		$categoryIsActiveSubQuery
+            ->from(['cca1' => Mage::getSingleton('core/resource')->getTableName('catalog_category_entity_int')], [])
+            ->joinLeft(
+                ['cca2' => Mage::getSingleton('core/resource')->getTableName('catalog_category_entity_int')],
+                'cca2.entity_id = cca1.entity_id AND cca2.attribute_id = cca1.attribute_id AND cca2.store_id = ' . $storeId,
+                []
+            )
+            ->columns(new Zend_Db_Expr('IF(cca2.value_id, cca2.value, cca1.value)'))
+            ->where('cca1.attribute_id = ' . $isActiveAttribute->getId())
+            ->where('cca1.store_id = 0')
+            ->where('cca1.entity_id = ccp.category_id');
+
 		// Add qty and category fields to select
 		$select->joinLeft(
 				array('csi' => Mage::getSingleton('core/resource')->getTableName('cataloginventory/stock_item')),
@@ -140,6 +154,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				'cce.entity_id = ccp.category_id AND cce.path LIKE ' . "'%/" . $rootCategoryId . "/%'",
 				array()
 			)
+            ->where("$categoryIsActiveSubQuery = 1")
 			->group('e.entity_id');
 
 		return $select;
