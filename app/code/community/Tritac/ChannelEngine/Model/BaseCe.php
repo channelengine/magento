@@ -9,7 +9,7 @@ class Tritac_ChannelEngine_Model_BaseCe
     /**
      * @return array
      */
-    protected function compundSku()
+    protected function getCompoundSku()
     {
 
         $products = Mage::getModel('catalog/product')->getCollection()

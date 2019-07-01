@@ -64,6 +64,7 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
      */
     public function processOrder($magentoOrder,$order, $setShipped)
     {
+
         try
         {
             // Initialize new invoice model
@@ -74,6 +75,7 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
                 false,
                 true
             );
+
 
             // Register invoice. Register invoice items. Collect invoice totals.
             $invoice->register();
@@ -103,7 +105,8 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
             if($setShipped) {
                 $this->setOrderToShipped($magentoOrder);
             }
-            
+
+            $this->getCompoundSku();
             return true;
         }
         catch (Exception $e) {
