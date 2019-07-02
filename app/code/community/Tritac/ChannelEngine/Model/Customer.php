@@ -39,7 +39,7 @@ class Tritac_ChannelEngine_Model_Customer  extends  Tritac_ChannelEngine_Model_B
             'city'          => $billingAddress->getCity(),
             'street'        =>
                 $billingAddress->getStreetName()."\n".
-                $billingAddress->getHouseNr().
+                $billingAddress->getHouseNr()." ".
                 $billingAddress->getHouseNrAddition()
         );
     }
@@ -68,7 +68,7 @@ class Tritac_ChannelEngine_Model_Customer  extends  Tritac_ChannelEngine_Model_B
             'city'          => $shippingAddress->getCity(),
             'street'        =>
                 $shippingAddress->getStreetName()."\n".
-                $shippingAddress->getHouseNr().
+                $shippingAddress->getHouseNr()." "
                 $shippingAddress->getHouseNrAddition()
         );
     }
