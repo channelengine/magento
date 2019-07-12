@@ -55,7 +55,7 @@ class Tritac_ChannelEngine_Model_Customer  extends  Tritac_ChannelEngine_Model_B
     /**
      * @param mixed $shipping_data
      */
-    public function setShippingData($shippingAddress,$order)
+    public function setShippingData($shippingAddress, $order)
     {
         $this->shipping_data =  array(
             'company'       => $shippingAddress->getCompanyName(),
@@ -68,7 +68,7 @@ class Tritac_ChannelEngine_Model_Customer  extends  Tritac_ChannelEngine_Model_B
             'city'          => $shippingAddress->getCity(),
             'street'        =>
                 $shippingAddress->getStreetName()."\n".
-                $shippingAddress->getHouseNr()." "
+                $shippingAddress->getHouseNr()." ".
                 $shippingAddress->getHouseNrAddition()
         );
     }
