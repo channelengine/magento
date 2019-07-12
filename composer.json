@@ -9,7 +9,10 @@
     }
   ],
   "require": {
-    "channelengine/merchant-api-client-php": " ~2.6.7"
+    "channelengine/merchant-api-client-php": " ~2.8.1"
   },
-  "type": "magento-module"
+  "type": "magento-module",
+  "config": {
+    "vendor-dir": "./lib/ChannelEngine/vendor"
+  }
 }
