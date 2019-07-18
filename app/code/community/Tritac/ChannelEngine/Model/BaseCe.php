@@ -7,7 +7,17 @@ class Tritac_ChannelEngine_Model_BaseCe
 
 
     /**
-     * @return array
+     * @param $storeId
+     * @return bool
+     */
+    protected function isCompoundSku($storeId)
+    {
+        $store = Mage::getModel('core/store')->load($storeId);
+        return Mage::getStoreConfig('channelengine/optional/compound_sku_orders', $store) == 1;
+    }
+
+    /**
+     * @return string
      */
     protected function getCompoundSku()
     {
@@ -30,7 +40,7 @@ class Tritac_ChannelEngine_Model_BaseCe
                 }
             }
         }
-        return $data;
+        return implode('-',$data);
 
     }
     /**

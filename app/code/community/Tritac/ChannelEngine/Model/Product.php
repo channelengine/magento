@@ -60,9 +60,11 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
     /**
      * @param $magentoOrder
      * @param $order
-     * @return bool]
+     * @param $setShipped
+     * @param string $compound_sku
+     * @return bool
      */
-    public function processOrder($magentoOrder,$order, $setShipped)
+    public function processOrder($magentoOrder,$order, $setShipped,$compound_sku = '')
     {
 
         try
@@ -86,10 +88,17 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
             $canShipPartially = ($canShipPartiallyItem || $os == MerchantOrderResponse::CHANNEL_ORDER_SUPPORT_SPLIT_ORDERS);
             // Initialize new channel order
             $_channelOrder = Mage::getModel('channelengine/order');
-            $_channelOrder->setOrderId($magentoOrder->getId())
+            $order_id = $magentoOrder->getId();
+
+            if(!empty($compound_sku) && is_integer($compound_sku) ) {
+                $order_id = $compound_sku;
+            }
+
+            $_channelOrder->setOrderId($order_id)
                 ->setChannelOrderId($order->getChannelOrderNo())
                 ->setChannelName($order->getChannelName())
                 ->setCanShipPartial($canShipPartially);
+
 
             $invoice->getOrder()
                 ->setCanShipPartiallyItem($canShipPartiallyItem)
@@ -105,8 +114,6 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
             if($setShipped) {
                 $this->setOrderToShipped($magentoOrder);
             }
-
-            $this->getCompoundSku();
             return true;
         }
         catch (Exception $e) {
