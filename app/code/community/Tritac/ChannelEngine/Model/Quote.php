@@ -5,11 +5,13 @@ class Tritac_ChannelEngine_Model_Quote  extends  Tritac_ChannelEngine_Model_Base
 {
 
 
-    public function prepareQuoteOrder($lines,$product,$storeId,$order,$quote)
+    public function prepareQuoteOrder($lines, $product, $storeId, $order, $quote, $isFulfillmentByMarketplace)
     {
+        // Prevent marketplace fulfilled orders from affecting stock 
+        if($isFulfillmentByMarketplace) $quote->setInventoryProcessed(true);
 
-        $quote->setInventoryProcessed(true);
         $quote->setIsSuperMode(true);
+        
         foreach($lines as $item) {
             $product_details = $product->generateProductId($item->getMerchantProductNo());
             // get order id
@@ -20,15 +22,18 @@ class Tritac_ChannelEngine_Model_Quote  extends  Tritac_ChannelEngine_Model_Base
                 $productOptions = array($ids[1] => intval($ids[2]));
             }
             $productNo = $product_details['productNo'];
+            
             // Load magento product
             $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
             $_product->load($productId);
+            
             // If the product can't be found by ID, fall back on the SKU.
             if(!$_product->getId()){
                 $productId = $_product->getIdBySku($productNo);
                 $_product->load($productId);
             }
-            // visable vat
+
+            // Disable vat
             if($this->disableMagentoVatCalculation($storeId)) {
                 $_product->setTaxClassId(0);
             }
@@ -36,6 +41,7 @@ class Tritac_ChannelEngine_Model_Quote  extends  Tritac_ChannelEngine_Model_Base
             $params = new Varien_Object();
             $params->setQty($item->getQuantity());
             $params->setOptions($productOptions);
+
             $add_product_to_quote = $this->addProductToQuote($_product, $quote, $params, $item, $order, $productNo);
             if (!$add_product_to_quote) {
                 return false;

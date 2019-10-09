@@ -138,7 +138,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                     }
                     // Initialize new quote
                     $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
-                    $prepare_quote = $productQuote->prepareQuoteOrder($lines,$product,$storeId,$order,$quote);
+                    $prepare_quote = $productQuote->prepareQuoteOrder($lines, $product, $storeId, $order, $quote, true);
                     if(!$prepare_quote) {
                         continue 2;
                     }
@@ -235,7 +235,7 @@ class Tritac_ChannelEngine_Model_Observer extends  Tritac_ChannelEngine_Model_Ba
                 $lines = $order->getLines();
                 if(count($lines) == 0 || empty($billingAddress)) continue;
                 $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
-                $prepare_quote = $productQuote->prepareQuoteOrder($lines,$product,$storeId,$order,$quote);
+                $prepare_quote = $productQuote->prepareQuoteOrder($lines, $product, $storeId, $order, $quote, false);
                 if(!$prepare_quote) {
                     continue 2;
                 }
