@@ -9,7 +9,7 @@ use ChannelEngine\Merchant\ApiClient\Api\OrderApi;
 use ChannelEngine\Merchant\ApiClient\Api\ShipmentApi;
 use ChannelEngine\Merchant\ApiClient\Api\ReturnApi;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantOrderResponse;
-use ChannelEngine\Merchant\ApiClient\Model\OrderAcknowledgement;
+use ChannelEngine\Merchant\ApiClient\Model\MerchantOrderAcknowledgementRequest;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentRequest;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentTrackingRequest;
 use ChannelEngine\Merchant\ApiClient\Model\MerchantShipmentLineRequest;
@@ -136,7 +136,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
             try
             {
                 $magentoOrder = $this->createMagentoOrderForStore($storeId, $order, false);
-                $acknowledgement = new OrderAcknowledgement();
+                $acknowledgement = new MerchantOrderAcknowledgementRequest();
                 $acknowledgement->setMerchantOrderNo($magentoOrder->getId());
                 $acknowledgement->setOrderId($order->getId());
                 $response = $client->orderAcknowledge($acknowledgement);
