@@ -78,7 +78,8 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
             if ($this->_helper->isConnected($storeId)) {
                 $apiConfig = new Configuration();
                 $apiConfig->setApiKey('apikey', $storeConfig['general']['api_key']);
-                $apiConfig->setHost('https://' . $storeConfig['general']['tenant'] . '.channelengine.net/api');
+                $apiConfig->setHost('http://' . $storeConfig['general']['tenant'] . '.channelengine.local/api');
+                //$apiConfig->setHost('https://' . $storeConfig['general']['tenant'] . '.channelengine.net/api');
                 $this->_client['orders'][$storeId] = new OrderApi(null, $apiConfig);
                 $this->_client['returns'][$storeId] = new ReturnApi(null, $apiConfig);
                 $this->_client['shipment'][$storeId] = new ShipmentApi(null, $apiConfig);
@@ -136,6 +137,8 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
             try
             {
                 $magentoOrder = $this->createMagentoOrderForStore($storeId, $order, false);
+                if(is_null($magentoOrder)) return;
+
                 $acknowledgement = new MerchantOrderAcknowledgementRequest();
                 $acknowledgement->setMerchantOrderNo($magentoOrder->getId());
                 $acknowledgement->setOrderId($order->getId());
@@ -144,7 +147,6 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
             catch(Exception $e)
             {
                 $this->logException($e);
-                return;
             }
         }
     }
@@ -203,7 +205,6 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
             catch(Exception $e)
             {
                 $this->logException($e);
-                return;
             }
         }
 
@@ -223,12 +224,12 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
 
         // Check if the order has already been imported
         $existingOrder = Mage::getModel('channelengine/order')->loadByChannelOrderId($order->getChannelOrderNo());
-        if ($existingOrder->getId()) return;
+        if ($existingOrder->getId()) return null;
 
         // Initialize new quote
         $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
         $prepare_quote = $productQuote->prepareQuoteOrder($lines, $product, $storeId, $order, $quote, $isFulfillmentByMarketplace);
-        if (!$prepare_quote) return;
+        if (!$prepare_quote) return null;
 
         $customer->setBillingData($billingAddress, $order);
         $customer->setShippingData($shippingAddress, $order);
@@ -240,7 +241,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
         Mage::register('channelengine_shipping', true);
 
         $product_data = $productQuote->processCustomerData($quote, $customer, $order);
-        if (!$product_data['status']) return;
+        if (!$product_data['status']) return null;
 
         $service = $product_data['service'];
         $magentoOrder = $service->getOrder();
