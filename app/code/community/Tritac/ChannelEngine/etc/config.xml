@@ -184,7 +184,7 @@
                     <cron_expr>*/5 * * * *</cron_expr>
                 </schedule>
                 <run>
-                    <model>channelengine/observer::fetchFulfilmentOrders</model>
+                    <model>channelengine/observer::fetchMarketplaceFulfilledOrders</model>
                 </run>
             </channelengine_import_fulfilmentorders>
             <channelengine_import_orders>

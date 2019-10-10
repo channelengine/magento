@@ -85,52 +85,6 @@ class Tritac_ChannelEngine_Model_BaseCe
         return Mage::getStoreConfig('channelengine/general/enable_order_import', $store) == 1;
     }
 
-
-    /**
-     * @param $magentoOrder
-     * @param $order
-     * @param $client
-     * @return bool
-     */
-    protected function ackChannelEngine($magentoOrder, $order, $client)
-    {
-        try {
-            // Send order acknowledgement to CE.
-            $ack = new \ChannelEngine\Merchant\ApiClient\Model\OrderAcknowledgement();
-            $ack->setMerchantOrderNo($magentoOrder->getId());
-            $ack->setOrderId($order->getId());
-            $response = $client->orderAcknowledge($ack);
-            if (!$response->getSuccess()) {
-                $this->logApiError($response, $ack);
-                return false;
-            } else {
-                return true;
-            }
-        } catch (Exception $e) {
-            $this->logException($e);
-            return false;
-        }
-    }
-
-    /**
-     * @param $orderApi
-     * @return bool
-     */
-    protected function initOrderApi($orderApi)
-    {
-        try {
-            $response = $orderApi->orderGetNew();
-            if (!$response->getSuccess()) {
-                $this->logApiError($response);
-                return false;
-            }
-            return $response;
-        } catch (Exception $e) {
-            $this->logException($e);
-            return false;
-        }
-    }
-
     /**
      * @param $message
      * @param null $level
