@@ -1,5 +1,7 @@
 <?php
-class Tritac_ChannelEngine_Model_Resource_Shipment extends Mage_Core_Model_Resource_Db_Abstract {
+
+class Tritac_ChannelEngine_Model_Resource_Shipment extends Mage_Core_Model_Resource_Db_Abstract
+{
 
     protected function _construct()
     {
@@ -17,14 +19,14 @@ class Tritac_ChannelEngine_Model_Resource_Shipment extends Mage_Core_Model_Resou
     {
 
         $adapter = $this->_getReadAdapter();
-        $bind    = array('shipment_id' => $shipmentId);
-        $select  = $adapter->select()
+        $bind = array('shipment_id' => $shipmentId);
+        $select = $adapter->select()
             ->from($this->getMainTable(), array($this->getIdFieldName()))
             ->where('shipment_id = :shipment_id');
 
         $entityId = $adapter->fetchOne($select, $bind);
         if ($entityId) {
-            $this->load($shipment, $entityId );
+            $this->load($shipment, $entityId);
         } else {
             $shipment->setData(array());
         }

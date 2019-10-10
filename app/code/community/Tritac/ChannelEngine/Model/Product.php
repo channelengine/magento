@@ -1,11 +1,9 @@
 <?php
 
 use ChannelEngine\Merchant\ApiClient\Model\MerchantOrderResponse;
-class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_BaseCe
+
+class Tritac_ChannelEngine_Model_Product extends Tritac_ChannelEngine_Model_BaseCe
 {
-
-
-
 
 
     /**
@@ -22,7 +20,6 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
             'ids' => $ids
         ];
     }
-
 
 
     /**
@@ -54,7 +51,6 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
         }
 
 
-
     }
 
     /**
@@ -64,11 +60,10 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
      * @param string $compound_sku
      * @return bool
      */
-    public function processOrder($magentoOrder,$order, $setShipped,$compound_sku = '')
+    public function processOrder($magentoOrder, $order, $setShipped, $compound_sku = '')
     {
 
-        try
-        {
+        try {
             // Initialize new invoice model
             $invoice = Mage::getModel('sales/service_order', $magentoOrder)->prepareInvoice();
             // Add comment to invoice
@@ -90,7 +85,7 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
             $_channelOrder = Mage::getModel('channelengine/order');
             $order_id = $magentoOrder->getId();
 
-            if(!empty($compound_sku) && is_integer($compound_sku) ) {
+            if (!empty($compound_sku) && is_integer($compound_sku)) {
                 $order_id = $compound_sku;
             }
 
@@ -111,12 +106,11 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
                 ->addObject($_channelOrder);
             $transactionSave->save();
 
-            if($setShipped) {
+            if ($setShipped) {
                 $this->setOrderToShipped($magentoOrder);
             }
             return true;
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             $this->addAdminNotification(
                 "An invoice could not be created (order #{$magentoOrder->getIncrementId()}, {$order->getChannelName()} #{$order->getChannelOrderNo()})",
                 "Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com"
@@ -126,11 +120,6 @@ class Tritac_ChannelEngine_Model_Product  extends  Tritac_ChannelEngine_Model_Ba
             return false;
         }
     }
-
-
-
-
-
 
 
 }

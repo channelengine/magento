@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Observer model
  */
@@ -11,7 +12,7 @@ class Tritac_ChannelEngine_Model_Loader
      * @var bool
      */
     protected static $added = false;
-    
+
     /**
      * Register the Composer autoloader
      * @param Varien_Event_Observer $observer
@@ -32,7 +33,7 @@ class Tritac_ChannelEngine_Model_Loader
      */
     public function getVendorDirectoryPath()
     {
-        $path = (string) Mage::getConfig()->getNode('global/composer_autoloader/path');
+        $path = (string)Mage::getConfig()->getNode('global/composer_autoloader/path');
         if (!$path) {
             $path = self::DEFAULT_PATH;
         }

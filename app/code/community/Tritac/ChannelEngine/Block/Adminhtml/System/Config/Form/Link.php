@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Adminhtml system href
  *
@@ -22,7 +23,7 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Form_Link extends Mage_
     /**
      * Return element html
      *
-     * @param  Varien_Data_Form_Element_Abstract $element
+     * @param Varien_Data_Form_Element_Abstract $element
      * @return string
      */
     protected function _getElementHtml(Varien_Data_Form_Element_Abstract $element)
@@ -31,13 +32,13 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Form_Link extends Mage_
         $action = $data['link_action'];
         $label = $data['link_label'];
         $url = $this->getUrl('adminhtml/ce/' . $action);
-        return '<a type="text" href="'.$url.'" target="_blank">'.$label.'</a>';
+        return '<a type="text" href="' . $url . '" target="_blank">' . $label . '</a>';
     }
 
     /**
      * Render element
      *
-     * @param  Varien_Data_Form_Element_Abstract $element
+     * @param Varien_Data_Form_Element_Abstract $element
      * @return string
      */
     public function render(Varien_Data_Form_Element_Abstract $element)

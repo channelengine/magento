@@ -1,10 +1,11 @@
 <?php
+
 class Tritac_ChannelEngine_Model_Carrier_Channelengine
     extends Mage_Shipping_Model_Carrier_Abstract
     implements Mage_Shipping_Model_Carrier_Interface
 {
 
-    /** @var string Shipping method system code*/
+    /** @var string Shipping method system code */
     protected $_code = 'channelengine';
 
     protected $_isFixed = true;
@@ -22,7 +23,7 @@ class Tritac_ChannelEngine_Model_Carrier_Channelengine
         }
 
         // Check if the rates were requested by ChannelEngine and not by the frontend
-        if(!Mage::registry('channelengine_shipping')){
+        if (!Mage::registry('channelengine_shipping')) {
             return false;
         }
         Mage::unregister('channelengine_shipping');
@@ -31,7 +32,7 @@ class Tritac_ChannelEngine_Model_Carrier_Channelengine
 
         $shippingPrice = 0;
 
-        if(Mage::registry('channelengine_shipping_amount')) {
+        if (Mage::registry('channelengine_shipping_amount')) {
             $shippingPrice = Mage::registry('channelengine_shipping_amount');
         }
         Mage::unregister('channelengine_shipping_amount');
@@ -56,12 +57,12 @@ class Tritac_ChannelEngine_Model_Carrier_Channelengine
 
     public function isActive()
     {
-        
+
     }
 
     public function getAllowedMethods()
     {
-        return array('channelengine'=>'ChannelEngine');
+        return array('channelengine' => 'ChannelEngine');
     }
 
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Adminhtml system href
  *
@@ -22,20 +23,20 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Form_Version extends Ma
     /**
      * Return element html
      *
-     * @param  Varien_Data_Form_Element_Abstract $element
+     * @param Varien_Data_Form_Element_Abstract $element
      * @return string
      */
     protected function _getElementHtml(Varien_Data_Form_Element_Abstract $element)
     {
-    	// Hide checkbox
-    	$element->unsCanUseWebsiteValue();
+        // Hide checkbox
+        $element->unsCanUseWebsiteValue();
         return $this->helper->getExtensionVersion();
     }
 
     /**
      * Render element
      *
-     * @param  Varien_Data_Form_Element_Abstract $element
+     * @param Varien_Data_Form_Element_Abstract $element
      * @return string
      */
     public function render(Varien_Data_Form_Element_Abstract $element)

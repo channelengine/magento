@@ -1,18 +1,19 @@
 <?php
 
 use ChannelEngine\Merchant\ApiClient\Model\MerchantOrderResponse;
-class Tritac_ChannelEngine_Model_Quote  extends  Tritac_ChannelEngine_Model_BaseCe
+
+class Tritac_ChannelEngine_Model_Quote extends Tritac_ChannelEngine_Model_BaseCe
 {
 
 
     public function prepareQuoteOrder($lines, $product, $storeId, $order, $quote, $isFulfillmentByMarketplace)
     {
         // Prevent marketplace fulfilled orders from affecting stock 
-        if($isFulfillmentByMarketplace) $quote->setInventoryProcessed(true);
+        if ($isFulfillmentByMarketplace) $quote->setInventoryProcessed(true);
 
         $quote->setIsSuperMode(true);
-        
-        foreach($lines as $item) {
+
+        foreach ($lines as $item) {
             $product_details = $product->generateProductId($item->getMerchantProductNo());
             // get order id
             $productId = $product_details['id'];
@@ -22,19 +23,19 @@ class Tritac_ChannelEngine_Model_Quote  extends  Tritac_ChannelEngine_Model_Base
                 $productOptions = array($ids[1] => intval($ids[2]));
             }
             $productNo = $product_details['productNo'];
-            
+
             // Load magento product
             $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
             $_product->load($productId);
-            
+
             // If the product can't be found by ID, fall back on the SKU.
-            if(!$_product->getId()){
+            if (!$_product->getId()) {
                 $productId = $_product->getIdBySku($productNo);
                 $_product->load($productId);
             }
 
             // Disable vat
-            if($this->disableMagentoVatCalculation($storeId)) {
+            if ($this->disableMagentoVatCalculation($storeId)) {
                 $_product->setTaxClassId(0);
             }
             // Prepare product parameters for quote
@@ -58,7 +59,7 @@ class Tritac_ChannelEngine_Model_Quote  extends  Tritac_ChannelEngine_Model_Base
      * @param $order
      * @return array
      */
-    public function processCustomerData($quote,$customer,$order)
+    public function processCustomerData($quote, $customer, $order)
     {
         $quote->setTotalsCollectedFlag(true);
 
@@ -80,26 +81,23 @@ class Tritac_ChannelEngine_Model_Quote  extends  Tritac_ChannelEngine_Model_Base
         $quote->setTotalsCollectedFlag(false);
         $quote->collectTotals();
         // Save quote and convert it to new order
-        try
-        {
+        try {
             $quote->save();
             $service = Mage::getModel('sales/service_quote', $quote);
             $service->submitAll();
             return [
-                'status'=>true,
-                'service'=>$service
+                'status' => true,
+                'service' => $service
             ];
 
-        }
-        catch (Exception $e)
-        {
+        } catch (Exception $e) {
             $this->addAdminNotification(
                 "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
                 "Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com"
             );
             $this->logException($e);
             return [
-                'status'=>false
+                'status' => false
             ];
         }
     }
@@ -115,18 +113,15 @@ class Tritac_ChannelEngine_Model_Quote  extends  Tritac_ChannelEngine_Model_Base
      * @param $productNo
      * @return bool
      */
-    public function addProductToQuote($_product,$quote,$params,$item,$order,$productNo)
+    public function addProductToQuote($_product, $quote, $params, $item, $order, $productNo)
     {
-        try
-        {
-            if(!$_product->getId())
-            {
-                Mage::throwException('Cannot find product: ' . $productNo );
+        try {
+            if (!$_product->getId()) {
+                Mage::throwException('Cannot find product: ' . $productNo);
             }
 
             $_quoteItem = $quote->addProduct($_product, $params);
-            if(is_string($_quoteItem))
-            {
+            if (is_string($_quoteItem)) {
                 // Magento sometimes returns a string when the method fails. -_-"
                 Mage::throwException('Failed to create quote item: ' . $_quoteItem);
             }
@@ -136,18 +131,13 @@ class Tritac_ChannelEngine_Model_Quote  extends  Tritac_ChannelEngine_Model_Base
             $_quoteItem->getProduct()->setIsSuperMode(true);
             return true;
 
-        }
-        catch (Exception $e)
-        {
+        } catch (Exception $e) {
             $this->logException($e);
-            $this->addAdminNotification( "An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
+            $this->addAdminNotification("An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
                 "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com");
             return false;
         }
     }
-
-
-
 
 
 }

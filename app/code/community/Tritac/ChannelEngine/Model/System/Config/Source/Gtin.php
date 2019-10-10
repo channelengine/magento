@@ -12,7 +12,7 @@ class Tritac_ChannelEngine_Model_System_Config_Source_Gtin
     public function toOptionArray()
     {
         if (!$this->_options) {
-            $this->_options[] = array('value'=> '', 'label'=> Mage::helper('adminhtml')->__('-- Please Select --'));
+            $this->_options[] = array('value' => '', 'label' => Mage::helper('adminhtml')->__('-- Please Select --'));
             $attributes = Mage::getSingleton('eav/config')
                 ->getEntityType(Mage_Catalog_Model_Product::ENTITY)
                 ->getAttributeCollection()
@@ -20,10 +20,10 @@ class Tritac_ChannelEngine_Model_System_Config_Source_Gtin
                 ->addFieldToFilter('frontend_input', array('in' => array('text', 'textarea')))
                 ->setOrder('frontend_label', 'ASC');
 
-            foreach($attributes as $attribute) {
+            foreach ($attributes as $attribute) {
                 $value = $attribute->getAttributeCode();
                 $label = ($attribute->getFrontendLabel()) ? $attribute->getFrontendLabel() : $value;
-                $this->_options[] = array('value'=> $value, 'label'=> $label);
+                $this->_options[] = array('value' => $value, 'label' => $label);
             }
         }
         return $this->_options;

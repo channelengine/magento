@@ -1,5 +1,7 @@
 <?php
-class Tritac_ChannelEngine_Model_Order extends Mage_Core_Model_Abstract {
+
+class Tritac_ChannelEngine_Model_Order extends Mage_Core_Model_Abstract
+{
 
     protected function _construct()
     {

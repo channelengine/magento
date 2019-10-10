@@ -1,4 +1,5 @@
 <?php
+
 class Tritac_ChannelEngine_Adminhtml_CeController extends Mage_Adminhtml_Controller_Action
 {
     protected function _isAllowed()
@@ -10,7 +11,7 @@ class Tritac_ChannelEngine_Adminhtml_CeController extends Mage_Adminhtml_Control
     {
         $feed = Mage::helper('channelengine/feed');
         $result = $feed->generateFeeds();
-        if($result) {
+        if ($result) {
             $this->returnStatus(false, $result);
         } else {
             $this->returnStatus(true, $result);
@@ -21,7 +22,7 @@ class Tritac_ChannelEngine_Adminhtml_CeController extends Mage_Adminhtml_Control
     {
         $observer = Mage::getModel('channelengine/observer');
         $result = $observer->fetchNewOrders();
-        if($result) {
+        if ($result) {
             $this->returnStatus(false, $result);
         } else {
             $this->returnStatus(true, $result);
@@ -32,7 +33,7 @@ class Tritac_ChannelEngine_Adminhtml_CeController extends Mage_Adminhtml_Control
     {
         $observer = Mage::getModel('channelengine/observer');
         $result = $observer->fetchFulfilmentOrders();
-        if($result) {
+        if ($result) {
             $this->returnStatus(false, $result);
         } else {
             $this->returnStatus(true, $result);
@@ -43,7 +44,7 @@ class Tritac_ChannelEngine_Adminhtml_CeController extends Mage_Adminhtml_Control
     {
         $observer = Mage::getModel('channelengine/observer');
         $result = $observer->fetchReturns();
-        if($result) {
+        if ($result) {
             $this->returnStatus(false, $result);
         } else {
             $this->returnStatus(true, $result);

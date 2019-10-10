@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Observer model
  */
@@ -24,23 +25,23 @@ class Tritac_ChannelEngine_Model_BaseCe
 
         $products = Mage::getModel('catalog/product')->getCollection()
             ->addAttributeToSelect('sku')
-            ->addFieldToFilter('type_id','configurable');
+            ->addFieldToFilter('type_id', 'configurable');
 
         $data = array();
         foreach ($products as $product) {
             $childProducts = Mage::getModel('catalog/product_type_configurable')
                 ->getUsedProducts(null, $product);
             if (count($childProducts)) {
-                foreach($childProducts as $childProduct) {
+                foreach ($childProducts as $childProduct) {
                     if (isset($data[$product->getSku()]) && $data[$product->getSku()]) {
-                        $data[$product->getSku()] .= " || ".$childProduct->getSku();
+                        $data[$product->getSku()] .= " || " . $childProduct->getSku();
                     } else {
                         $data[$product->getSku()] = $childProduct->getSku();
                     }
                 }
             }
         }
-        return implode('-',$data);
+        return implode('-', $data);
 
     }
     /**
@@ -90,6 +91,7 @@ class Tritac_ChannelEngine_Model_BaseCe
     }*/
 
     const LOGFILE = 'channelengine.log';
+
     /**
      * @param $storeId
      * @return bool
@@ -123,31 +125,27 @@ class Tritac_ChannelEngine_Model_BaseCe
     }
 
 
-
     /**
      * @param $magentoOrder
      * @param $order
      * @param $client
      * @return bool
      */
-    protected function ackChannelEngine($magentoOrder,$order,$client)
+    protected function ackChannelEngine($magentoOrder, $order, $client)
     {
-        try
-        {
+        try {
             // Send order acknowledgement to CE.
             $ack = new \ChannelEngine\Merchant\ApiClient\Model\OrderAcknowledgement();
             $ack->setMerchantOrderNo($magentoOrder->getId());
             $ack->setOrderId($order->getId());
             $response = $client->orderAcknowledge($ack);
-            if(!$response->getSuccess()) {
+            if (!$response->getSuccess()) {
                 $this->logApiError($response, $ack);
                 return false;
             } else {
                 return true;
             }
-        }
-        catch(Exception $e)
-        {
+        } catch (Exception $e) {
             $this->logException($e);
             return false;
         }
@@ -161,7 +159,7 @@ class Tritac_ChannelEngine_Model_BaseCe
     {
         try {
             $response = $orderApi->orderGetNew();
-            if(!$response->getSuccess()) {
+            if (!$response->getSuccess()) {
                 $this->logApiError($response);
                 return false;
             }
@@ -171,6 +169,7 @@ class Tritac_ChannelEngine_Model_BaseCe
             return false;
         }
     }
+
     /**
      * @param $message
      * @param null $level
@@ -188,7 +187,7 @@ class Tritac_ChannelEngine_Model_BaseCe
     protected function logApiError($response, $model = null)
     {
         $this->log(
-            'API Call failed ['.$response->getStatusCode().'] ' . $response->getMessage() . PHP_EOL . print_r($model, true),
+            'API Call failed [' . $response->getStatusCode() . '] ' . $response->getMessage() . PHP_EOL . print_r($model, true),
             Zend_Log::ERR
         );
     }
@@ -201,7 +200,7 @@ class Tritac_ChannelEngine_Model_BaseCe
     protected function addAdminNotification($title, $message)
     {
         // Check if notification already exists
-        $_resource  = Mage::getSingleton('core/resource');
+        $_resource = Mage::getSingleton('core/resource');
         $_connectionRead = $_resource->getConnection('core_read');
         $select = $_connectionRead->select()
             ->from($_resource->getTableName('adminnotification/inbox'))
@@ -224,8 +223,7 @@ class Tritac_ChannelEngine_Model_BaseCe
      */
     protected function logException($e, $model = null)
     {
-        if($e instanceof \ChannelEngine\Merchant\ApiClient\ApiException)
-        {
+        if ($e instanceof \ChannelEngine\Merchant\ApiClient\ApiException) {
             $message = $e->getMessage() . PHP_EOL .
                 print_r($e->getResponseBody(), true) .
                 print_r($e->getResponseHeaders(), true) .

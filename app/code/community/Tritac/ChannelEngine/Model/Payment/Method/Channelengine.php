@@ -1,8 +1,10 @@
 <?php
+
 /**
  * ChannelEngine Payment Method
  */
-class Tritac_ChannelEngine_Model_Payment_Method_Channelengine extends Mage_Payment_Model_Method_Abstract {
+class Tritac_ChannelEngine_Model_Payment_Method_Channelengine extends Mage_Payment_Model_Method_Abstract
+{
 
     /**
      * System payment method code
@@ -13,7 +15,7 @@ class Tritac_ChannelEngine_Model_Payment_Method_Channelengine extends Mage_Payme
 
     public function isAvailable($quote = null)
     {
-        if(!is_null($quote) && $quote->getIsSystem() && $quote->getPayment()->getMethod() == $this->_code) {
+        if (!is_null($quote) && $quote->getIsSystem() && $quote->getPayment()->getMethod() == $this->_code) {
             return true;
         }
 

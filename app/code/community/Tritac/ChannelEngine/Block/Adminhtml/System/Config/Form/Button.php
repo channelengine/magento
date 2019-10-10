@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Adminhtml system "generate feed" button
  *
@@ -22,7 +23,7 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Form_Button extends Mag
     /**
      * Return element html
      *
-     * @param  Varien_Data_Form_Element_Abstract $element
+     * @param Varien_Data_Form_Element_Abstract $element
      * @return string
      */
     protected function _getElementHtml(Varien_Data_Form_Element_Abstract $element)
@@ -56,20 +57,20 @@ class Tritac_ChannelEngine_Block_Adminhtml_System_Config_Form_Button extends Mag
     public function getButtonHtml()
     {
         $label = $this->data['button_label'];
-        
+
         $button = $this->getLayout()->createBlock('adminhtml/widget_button')->setData(array(
-            'id'       => $this->id,
-            'label'    => $label, //$this->helper('channelengine')->__('Generate Feed'),
-            'onclick'  => 'javascript:makeRequest'.$this->id .'(); return false;'
+            'id' => $this->id,
+            'label' => $label, //$this->helper('channelengine')->__('Generate Feed'),
+            'onclick' => 'javascript:makeRequest' . $this->id . '(); return false;'
         ));
- 
+
         return $button->toHtml();
     }
 
     /**
      * Render element
      *
-     * @param  Varien_Data_Form_Element_Abstract $element
+     * @param Varien_Data_Form_Element_Abstract $element
      * @return string
      */
     public function render(Varien_Data_Form_Element_Abstract $element)

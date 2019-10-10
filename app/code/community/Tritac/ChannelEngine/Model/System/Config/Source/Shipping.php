@@ -1,28 +1,31 @@
 <?php
-class Tritac_ChannelEngine_Model_System_Config_Source_Shipping {
+
+class Tritac_ChannelEngine_Model_System_Config_Source_Shipping
+{
 
     protected $_options = null;
 
-    public function toOptionArray() {
+    public function toOptionArray()
+    {
 
-        if(is_null($this->_options)) {
+        if (is_null($this->_options)) {
             $_activeCarriers = Mage::getModel('shipping/config')->getActiveCarriers();
 
-            foreach($_activeCarriers as $carrierCode => $_carrier) {
+            foreach ($_activeCarriers as $carrierCode => $_carrier) {
 
-                if($_methods = $_carrier->getAllowedMethods()) {
+                if ($_methods = $_carrier->getAllowedMethods()) {
 
-                    if(!$title = Mage::getStoreConfig("carriers/{$_carrier->getId()}/title")) {
+                    if (!$title = Mage::getStoreConfig("carriers/{$_carrier->getId()}/title")) {
                         $title = $carrierCode;
                     }
 
                     $methods = array();
 
-                    foreach($_methods as $methodCode => $method) {
+                    foreach ($_methods as $methodCode => $method) {
 
                         $methods[] = array(
-                            'label' => $title.' – '.$method,
-                            'value' => $carrierCode.'_'.$methodCode
+                            'label' => $title . ' – ' . $method,
+                            'value' => $carrierCode . '_' . $methodCode
                         );
                     }
 

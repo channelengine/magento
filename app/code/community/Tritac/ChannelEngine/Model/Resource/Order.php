@@ -1,5 +1,7 @@
 <?php
-class Tritac_ChannelEngine_Model_Resource_Order extends Mage_Core_Model_Resource_Db_Abstract {
+
+class Tritac_ChannelEngine_Model_Resource_Order extends Mage_Core_Model_Resource_Db_Abstract
+{
 
     protected function _construct()
     {
@@ -17,14 +19,14 @@ class Tritac_ChannelEngine_Model_Resource_Order extends Mage_Core_Model_Resource
     {
 
         $adapter = $this->_getReadAdapter();
-        $bind    = array('order_id' => $orderId);
-        $select  = $adapter->select()
+        $bind = array('order_id' => $orderId);
+        $select = $adapter->select()
             ->from($this->getMainTable(), array($this->getIdFieldName()))
             ->where('order_id = :order_id');
 
         $entityId = $adapter->fetchOne($select, $bind);
         if ($entityId) {
-            $this->load($order, $entityId );
+            $this->load($order, $entityId);
         } else {
             $order->setData(array());
         }
@@ -43,14 +45,14 @@ class Tritac_ChannelEngine_Model_Resource_Order extends Mage_Core_Model_Resource
     {
 
         $adapter = $this->_getReadAdapter();
-        $bind    = array('channel_order_id' => $orderId);
-        $select  = $adapter->select()
+        $bind = array('channel_order_id' => $orderId);
+        $select = $adapter->select()
             ->from($this->getMainTable(), array($this->getIdFieldName()))
             ->where('channel_order_id = :channel_order_id');
 
         $entityId = $adapter->fetchOne($select, $bind);
         if ($entityId) {
-            $this->load($order, $entityId );
+            $this->load($order, $entityId);
         } else {
             $order->setData(array());
         }

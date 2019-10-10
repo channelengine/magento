@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Observer model
  */
-class Tritac_ChannelEngine_Model_Customer  extends  Tritac_ChannelEngine_Model_BaseCe
+class Tritac_ChannelEngine_Model_Customer extends Tritac_ChannelEngine_Model_BaseCe
 {
 
     private $billing_data;
@@ -11,7 +12,7 @@ class Tritac_ChannelEngine_Model_Customer  extends  Tritac_ChannelEngine_Model_B
     public function formatPhone($order)
     {
         $phone = $order->getPhone();
-        if(empty($phone)) $phone = '-';
+        if (empty($phone)) $phone = '-';
         return $phone;
     }
 
@@ -26,20 +27,20 @@ class Tritac_ChannelEngine_Model_Customer  extends  Tritac_ChannelEngine_Model_B
     /**
      * @param mixed $billing_data
      */
-    public function setBillingData($billingAddress,$order)
+    public function setBillingData($billingAddress, $order)
     {
-        $this->billing_data =  array(
-            'company'       => $billingAddress->getCompanyName(),
-            'firstname'     => $billingAddress->getFirstName(),
-            'lastname'      => $billingAddress->getLastName(),
-            'email'         => $order->getEmail(),
-            'telephone'     => $this->formatPhone($order),
-            'country_id'    => $billingAddress->getCountryIso(),
-            'postcode'      => $billingAddress->getZipCode(),
-            'city'          => $billingAddress->getCity(),
-            'street'        =>
-                $billingAddress->getStreetName()."\n".
-                $billingAddress->getHouseNr()." ".
+        $this->billing_data = array(
+            'company' => $billingAddress->getCompanyName(),
+            'firstname' => $billingAddress->getFirstName(),
+            'lastname' => $billingAddress->getLastName(),
+            'email' => $order->getEmail(),
+            'telephone' => $this->formatPhone($order),
+            'country_id' => $billingAddress->getCountryIso(),
+            'postcode' => $billingAddress->getZipCode(),
+            'city' => $billingAddress->getCity(),
+            'street' =>
+                $billingAddress->getStreetName() . "\n" .
+                $billingAddress->getHouseNr() . " " .
                 $billingAddress->getHouseNrAddition()
         );
     }
@@ -57,24 +58,21 @@ class Tritac_ChannelEngine_Model_Customer  extends  Tritac_ChannelEngine_Model_B
      */
     public function setShippingData($shippingAddress, $order)
     {
-        $this->shipping_data =  array(
-            'company'       => $shippingAddress->getCompanyName(),
-            'firstname'     => $shippingAddress->getFirstName(),
-            'lastname'      => $shippingAddress->getLastName(),
-            'email'         => $order->getEmail(),
-            'telephone'     => $this->formatPhone($order),
-            'country_id'    => $shippingAddress->getCountryIso(),
-            'postcode'      => $shippingAddress->getZipCode(),
-            'city'          => $shippingAddress->getCity(),
-            'street'        =>
-                $shippingAddress->getStreetName()."\n".
-                $shippingAddress->getHouseNr()." ".
+        $this->shipping_data = array(
+            'company' => $shippingAddress->getCompanyName(),
+            'firstname' => $shippingAddress->getFirstName(),
+            'lastname' => $shippingAddress->getLastName(),
+            'email' => $order->getEmail(),
+            'telephone' => $this->formatPhone($order),
+            'country_id' => $shippingAddress->getCountryIso(),
+            'postcode' => $shippingAddress->getZipCode(),
+            'city' => $shippingAddress->getCity(),
+            'street' =>
+                $shippingAddress->getStreetName() . "\n" .
+                $shippingAddress->getHouseNr() . " " .
                 $shippingAddress->getHouseNrAddition()
         );
     }
-
-
-
 
 
 }
