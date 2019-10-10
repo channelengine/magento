@@ -224,13 +224,17 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 				foreach($option->getValues() as $value)
 				{
 					$variantData = $productData;
+					$variantData['sku'] = $variantData['sku'] . '_' . $value->getSku();
 					$variantData['id'] = $variantData['entity_id'] . '_' . $option['option_id'] . '_' . $value->getId();
 
 					if(isset($value['price'])) $variantData['price'] = $this->getOptionPrice($value, $variantData);
 
 					$optionAttribute = array(
 						'name' => preg_replace('/[^a-zA-Z0-9]/', '', str_replace(' ', '_', $option['default_title'])),
-						'value' => $value->getDefaultTitle()
+						'value' => $value->getDefaultTitle(),
+                        'id' => $option->getId(),
+                        'value_id' => $value->getId(),
+                        'value_sku' => $value->getSku()
 					);
 
 					$this->writeProduct($io, $store, $variantData, $categories, $customAttributes, $systemAttributes, $optionAttribute);
@@ -421,7 +425,15 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract {
 			}
 		}
 
-		if($optionAttribute !== null) $io->streamWrite('<OptionAttribute name="'.$optionAttribute['name'].'"><![CDATA[' . $optionAttribute['value'] . ']]></OptionAttribute>');
+		if($optionAttribute !== null)
+		{
+		    $io->streamWrite('<OptionAttribute 
+                Id="'.$optionAttribute['id'].'"
+                ValueId="'.$optionAttribute['value_id'].'"
+                ValueSku="'.$optionAttribute['value_sku'].'"
+                Name="'.$optionAttribute['name'].'"
+                ><![CDATA[' . $optionAttribute['value'] . ']]></OptionAttribute>');
+        }
 
 		$this->writeAttributes($io, $product, $customAttributes, 'Attributes');
 		$this->writeAttributes($io, $product, $systemAttributes, 'SystemAttributes');
