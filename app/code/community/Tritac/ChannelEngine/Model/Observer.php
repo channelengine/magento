@@ -140,46 +140,15 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
 
         foreach ($orders as $order)
         {
-            $product = new Tritac_ChannelEngine_Model_Product();
-            $productQuote = new Tritac_ChannelEngine_Model_Quote();
-            $customer = new Tritac_ChannelEngine_Model_Customer();
-
-            $lines = $order->getLines();
-            $billingAddress = $order->getBillingAddress();
-            $shippingAddress = $order->getShippingAddress();
-
-            if (count($lines) == 0 || empty($billingAddress)) continue;
-
-            // Check if the order has already been imported
-            $existingOrder = Mage::getModel('channelengine/order')->loadByChannelOrderId($order->getChannelOrderNo());
-            if ($existingOrder->getId()) continue;
-
-            // Initialize new quote
-            $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
-            $prepare_quote = $productQuote->prepareQuoteOrder($lines, $product, $storeId, $order, $quote, true);
-            if (!$prepare_quote)
+            try
             {
-                continue;
+                $magentoOrder = $this->createMagentoOrderForStore($storeId, $order, true);
             }
-
-            $customer->setBillingData($billingAddress, $order);
-            $customer->setShippingData($shippingAddress, $order);
-
-            // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
-            Mage::register('channelengine_shipping_amount', floatval($order->getShippingCostsInclVat()));
-            // Set this value to make sure ChannelEngine requested the rates and not the frontend
-            // because the shipping method has a fallback on 0,- and this will make it show up on the frontend
-            Mage::register('channelengine_shipping', true);
-
-            $product_data = $productQuote->processCustomerData($quote, $customer, $order);
-            if (!$product_data['status'])
+            catch(Exception $e)
             {
-                continue;
+                $this->logException($e);
+                return;
             }
-
-            $service = $product_data['service'];
-            $magentoOrder = $service->getOrder();
-            $product->processOrder($magentoOrder, $order, true);
         }
 
     }
@@ -261,49 +230,9 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
 
         foreach ($orders as $order)
         {
-            $product = new Tritac_ChannelEngine_Model_Product();
-            $productQuote = new Tritac_ChannelEngine_Model_Quote();
-            $customer = new Tritac_ChannelEngine_Model_Customer();
-
-            $lines = $order->getLines();
-            $billingAddress = $order->getBillingAddress();
-            $shippingAddress = $order->getShippingAddress();
-
-            if (count($lines) == 0 || empty($billingAddress)) continue;
-
-            // Check if the order has already been imported
-            $existingOrder = Mage::getModel('channelengine/order')->loadByChannelOrderId($order->getChannelOrderNo());
-            if ($existingOrder->getId()) continue;
-
-            // Initialize new quote
-            $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
-            $prepare_quote = $productQuote->prepareQuoteOrder($lines, $product, $storeId, $order, $quote, true);
-            if (!$prepare_quote)
-            {
-                continue;
-            }
-
-            $customer->setBillingData($billingAddress, $order);
-            $customer->setShippingData($shippingAddress, $order);
-
-            // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
-            Mage::register('channelengine_shipping_amount', floatval($order->getShippingCostsInclVat()));
-            // Set this value to make sure ChannelEngine requested the rates and not the frontend
-            // because the shipping method has a fallback on 0,- and this will make it show up on the frontend
-            Mage::register('channelengine_shipping', true);
-
-            $product_data = $productQuote->processCustomerData($quote, $customer, $order);
-            if (!$product_data['status'])
-            {
-                continue;
-            }
-
-            $service = $product_data['service'];
-            $magentoOrder = $service->getOrder();
-            $product->processOrder($magentoOrder, $order, true);
-
             try
             {
+                $magentoOrder = $this->createMagentoOrderForStore($storeId, $order, false);
                 $acknowledgement = new OrderAcknowledgement();
                 $acknowledgement->setMerchantOrderNo($magentoOrder->getId());
                 $acknowledgement->setOrderId($order->getId());
@@ -315,6 +244,46 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
                 return;
             }
         }
+    }
+
+    private function createMagentoOrderForStore($storeId, $order, $isFulfillmentByMarketplace)
+    {
+        $product = new Tritac_ChannelEngine_Model_Product();
+        $productQuote = new Tritac_ChannelEngine_Model_Quote();
+        $customer = new Tritac_ChannelEngine_Model_Customer();
+
+        $lines = $order->getLines();
+        $billingAddress = $order->getBillingAddress();
+        $shippingAddress = $order->getShippingAddress();
+
+        if (count($lines) == 0 || empty($billingAddress)) return;
+
+        // Check if the order has already been imported
+        $existingOrder = Mage::getModel('channelengine/order')->loadByChannelOrderId($order->getChannelOrderNo());
+        if ($existingOrder->getId()) return;
+
+        // Initialize new quote
+        $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
+        $prepare_quote = $productQuote->prepareQuoteOrder($lines, $product, $storeId, $order, $quote, $isFulfillmentByMarketplace);
+        if (!$prepare_quote) return;
+
+        $customer->setBillingData($billingAddress, $order);
+        $customer->setShippingData($shippingAddress, $order);
+
+        // Register shipping cost. See Tritac_ChannelEngine_Model_Carrier_Channelengine::collectrates();
+        Mage::register('channelengine_shipping_amount', floatval($order->getShippingCostsInclVat()));
+        // Set this value to make sure ChannelEngine requested the rates and not the frontend
+        // because the shipping method has a fallback on 0,- and this will make it show up on the frontend
+        Mage::register('channelengine_shipping', true);
+
+        $product_data = $productQuote->processCustomerData($quote, $customer, $order);
+        if (!$product_data['status']) return;
+
+        $service = $product_data['service'];
+        $magentoOrder = $service->getOrder();
+        $product->processOrder($magentoOrder, $order, $isFulfillmentByMarketplace);
+
+        return $magentoOrder;
     }
 
     /**
