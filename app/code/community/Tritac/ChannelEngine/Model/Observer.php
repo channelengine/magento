@@ -88,14 +88,18 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
         }
     }
 
-
+    /**
+     * Generates all product feeds
+     * Ran by cron. The cronjob is set in extension config file.
+     */
     public function generateFeeds()
     {
         $this->_feedHelper->generateFeeds();
     }
 
     /**
-     * Fetch the fulfilment orders
+     * Fetches the marketplace fulfilled orders (LVB, FBA, FBC, etc.)
+     * Ran by cron. The cronjob is set in extension config file.
      * @return bool
      */
     public function fetchMarketplaceFulfilledOrders()
@@ -154,7 +158,8 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
     }
 
     /**
-     * Cancel an order and send to CE the cancellation
+     * Creates a ChannelEngine cancellation for a credited order
+     * Triggered by events. The event is set in extension config file.
      * @param Varien_Event_Observer $observer
      */
     public function creditCancellation(Varien_Event_Observer $observer)
@@ -194,9 +199,8 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
 
 
     /**
-     * Fetch new orders from ChannelEngine.
+     * Fetches new merchant fulfilled orders from ChannelEngine.
      * Ran by cron. The cronjob is set in extension config file.
-     *
      * @return bool
      */
     public function fetchNewOrders()
@@ -288,7 +292,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
 
     /**
      * Post new shipment to ChannelEngine. This function is set in extension config file.
-     *
+     * Triggered by events. The event is set in extension config file.
      * @param Varien_Event_Observer $observer
      * @return bool
      * @throws Exception
@@ -406,7 +410,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
 
     /**
      * Fetch new returns from channelengine
-     *
+     * Ran by cron. The cronjob is set in extension config file.
      * @return bool
      */
     public function fetchReturns()
@@ -461,7 +465,6 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
 
     /**
      * Add channelengine order fields to adminhtml order grid
-     *
      * @param $observer
      * @return $this
      */
