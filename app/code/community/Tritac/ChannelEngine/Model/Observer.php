@@ -258,11 +258,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
                     continue;
                 }
 
-                if ($this->isCompoundSku($storeId)) {
-                    $product->processOrder($magentoOrder, $order, false, $this->getCompoundSku());
-                } else {
-                    $product->processOrder($magentoOrder, $order, false);
-                }
+                $product->processOrder($magentoOrder, $order, false);
 
                 $send_to_ce = $this->ackChannelEngine($magentoOrder, $order, $client);
                 if (!$send_to_ce) {

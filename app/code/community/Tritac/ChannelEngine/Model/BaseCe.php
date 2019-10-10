@@ -5,45 +5,6 @@
  */
 class Tritac_ChannelEngine_Model_BaseCe
 {
-
-
-    /**
-     * @param $storeId
-     * @return bool
-     */
-    protected function isCompoundSku($storeId)
-    {
-        $store = Mage::getModel('core/store')->load($storeId);
-        return Mage::getStoreConfig('channelengine/optional/compound_sku_orders', $store) == 1;
-    }
-
-    /**
-     * @return string
-     */
-    protected function getCompoundSku()
-    {
-
-        $products = Mage::getModel('catalog/product')->getCollection()
-            ->addAttributeToSelect('sku')
-            ->addFieldToFilter('type_id', 'configurable');
-
-        $data = array();
-        foreach ($products as $product) {
-            $childProducts = Mage::getModel('catalog/product_type_configurable')
-                ->getUsedProducts(null, $product);
-            if (count($childProducts)) {
-                foreach ($childProducts as $childProduct) {
-                    if (isset($data[$product->getSku()]) && $data[$product->getSku()]) {
-                        $data[$product->getSku()] .= " || " . $childProduct->getSku();
-                    } else {
-                        $data[$product->getSku()] = $childProduct->getSku();
-                    }
-                }
-            }
-        }
-        return implode('-', $data);
-
-    }
     /**
      * Join channelengine order fields to adminhtml order grid
      *

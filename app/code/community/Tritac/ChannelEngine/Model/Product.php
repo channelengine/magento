@@ -57,7 +57,6 @@ class Tritac_ChannelEngine_Model_Product extends Tritac_ChannelEngine_Model_Base
      * @param $magentoOrder
      * @param $order
      * @param $setShipped
-     * @param string $compound_sku
      * @return bool
      */
     public function processOrder($magentoOrder, $order, $setShipped, $compound_sku = '')
@@ -85,7 +84,6 @@ class Tritac_ChannelEngine_Model_Product extends Tritac_ChannelEngine_Model_Base
             $_channelOrder = Mage::getModel('channelengine/order');
             $order_id = $magentoOrder->getId();
 
-            if (!empty($compound_sku) && is_integer($compound_sku)) {
                 $order_id = $compound_sku;
             }
 
