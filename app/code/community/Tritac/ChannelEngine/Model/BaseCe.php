@@ -54,38 +54,6 @@ class Tritac_ChannelEngine_Model_BaseCe
     const LOGFILE = 'channelengine.log';
 
     /**
-     * @param $storeId
-     * @return bool
-     */
-    protected function disableMagentoVatCalculation($storeId)
-    {
-        $store = Mage::getModel('core/store')->load($storeId);
-        return Mage::getStoreConfig('channelengine/optional/disable_magento_vat_calculation', $store) == 1;
-    }
-
-    /**
-     * @param $storeId
-     * @return bool
-     */
-    protected function isMarketplaceFulfilledOrderImportEnabled($storeId)
-    {
-        $store = Mage::getModel('core/store')->load($storeId);
-        return Mage::getStoreConfig('channelengine/optional/enable_fulfilment_import', $store) == 1;
-    }
-
-    /**
-     * Enable the order import
-     * @param $storeId
-     * @return bool
-     */
-    protected function isOrderImportEnabled($storeId)
-    {
-
-        $store = Mage::getModel('core/store')->load($storeId);
-        return Mage::getStoreConfig('channelengine/general/enable_order_import', $store) == 1;
-    }
-
-    /**
      * @param $message
      * @param null $level
      */

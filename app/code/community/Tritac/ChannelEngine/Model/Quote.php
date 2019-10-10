@@ -4,7 +4,12 @@ use ChannelEngine\Merchant\ApiClient\Model\MerchantOrderResponse;
 
 class Tritac_ChannelEngine_Model_Quote extends Tritac_ChannelEngine_Model_BaseCe
 {
+    private $_helper;
 
+    public function __construct()
+    {
+        $this->_helper = Mage::helper('channelengine');
+    }
 
     public function prepareQuoteOrder($lines, $product, $storeId, $order, $quote, $isFulfillmentByMarketplace)
     {
@@ -14,39 +19,35 @@ class Tritac_ChannelEngine_Model_Quote extends Tritac_ChannelEngine_Model_BaseCe
         $quote->setIsSuperMode(true);
 
         foreach ($lines as $item) {
-            $product_details = $product->generateProductId($item->getMerchantProductNo());
-            // get order id
-            $productId = $product_details['id'];
+
+            $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
             $productOptions = array();
-            $ids = $product_details['ids'];
-            if (count($ids) == 3) {
-                $productOptions = array($ids[1] => intval($ids[2]));
+            $productId = null;
+            $mpn = $item->getMerchantProductNo();
+
+            if($this->_helper->useSkuInsteadOfId($storeId))
+            {
+                $productId = $_product->getIdBySku($mpn);
             }
-            $productNo = $product_details['productNo'];
+            else
+            {
+                $parsedMpn = $product->parseMerchantProductNo($mpn);
+                $productId = $parsedMpn['id'];
+                if (isset($parsedMpn['option_id'])) $productOptions = array($parsedMpn['option_id'] => intval($parsedMpn['option_value_id']));
+            }
 
             // Load magento product
-            $_product = Mage::getModel('catalog/product')->setStoreId($storeId);
             $_product->load($productId);
 
-            // If the product can't be found by ID, fall back on the SKU.
-            if (!$_product->getId()) {
-                $productId = $_product->getIdBySku($productNo);
-                $_product->load($productId);
-            }
-
             // Disable vat
-            if ($this->disableMagentoVatCalculation($storeId)) {
-                $_product->setTaxClassId(0);
-            }
+            if ($this->_helper->disableMagentoVatCalculation($storeId)) $_product->setTaxClassId(0);
+
             // Prepare product parameters for quote
             $params = new Varien_Object();
             $params->setQty($item->getQuantity());
             $params->setOptions($productOptions);
 
-            $add_product_to_quote = $this->addProductToQuote($_product, $quote, $params, $item, $order, $productNo);
-            if (!$add_product_to_quote) {
-                return false;
-            }
+            return $this->addProductToQuote($_product, $quote, $params, $item, $order, $mpn);
         }
         return true;
 
@@ -134,7 +135,7 @@ class Tritac_ChannelEngine_Model_Quote extends Tritac_ChannelEngine_Model_BaseCe
         } catch (Exception $e) {
             $this->logException($e);
             $this->addAdminNotification("An order ({$order->getChannelName()} #{$order->getChannelOrderNo()}) could not be imported",
-                "Failed add product to order: #{$productNo}. Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com");
+                "Failed add product to order: '{$productNo}'. Reason: {$e->getMessage()} Please contact ChannelEngine support at support@channelengine.com");
             return false;
         }
     }

@@ -7,18 +7,23 @@ class Tritac_ChannelEngine_Model_Product extends Tritac_ChannelEngine_Model_Base
 
 
     /**
-     * @param $product_number
+     * @param $mpn
      * @return array
      */
-    public function generateProductId($product_number)
+    public function parseMerchantProductNo($mpn)
     {
-        $ids = explode('_', $product_number);
-        $productId = $ids[0];
-        return [
-            'id' => $productId,
-            'productNo' => $product_number,
-            'ids' => $ids
+        $ids = explode('_', $mpn);
+        $result = [
+            'product_id' => $ids[0]
         ];
+
+        if(count($ids) == 3)
+        {
+            $result['option_id'] = $ids[1];
+            $result['option_value_id'] = $ids[2];
+        }
+
+        return $result;
     }
 
 

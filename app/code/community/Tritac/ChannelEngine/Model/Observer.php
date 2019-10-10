@@ -109,7 +109,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
 
         foreach ($this->_client['orders'] as $storeId => $client) {
 
-            if (!$this->isOrderImportEnabled($storeId)) continue;
+            if (!$this->_helper->isOrderImportEnabled($storeId)) continue;
 
             $this->fetchNewOrdersForStore($storeId, $client);
         }
@@ -162,7 +162,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
 
         foreach ($this->_client['orders'] as $storeId => $client) {
 
-            if (!$this->isMarketplaceFulfilledOrderImportEnabled($storeId)) continue;
+            if (!$this->_helper->isMarketplaceFulfilledOrderImportEnabled($storeId)) continue;
 
             $this->fetchMarketplaceFulfilledOrdersForStore($storeId, $client);
         }
@@ -328,6 +328,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
         // Add the shipment lines
         $ceShipmentLines = array();
         foreach ($_shipment->getAllItems() as $_shipmentItem) {
+
             // Get the quantity for this shipment
             $shippedQty = (int)$_shipmentItem->getQty();
             if ($shippedQty == 0) continue;
@@ -336,9 +337,24 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
             $_orderItem = Mage::getModel('sales/order_item')->load($_shipmentItem->getOrderItemId());
             if ($_orderItem == null) continue;
 
+            // Only one option per product is supported by CE
+            $productOption = null;
+            $_productOptions = $_orderItem->getProductOptions();
+            if(isset($_productOptions['options']) && count($_productOptions['options']) > 0) $productOption = $_productOptions['options'][0];
+
             $ceShipmentLine = new MerchantShipmentLineRequest();
-            $ceShipmentLine->setMerchantProductNo($_shipmentItem->getProductId());
-            //$ceShipmentLine->setMerchantProductNo($_shipmentItem->getSku());
+
+            if($this->_helper->useSkuInsteadOfId($storeId))
+            {
+                $ceShipmentLine->setMerchantProductNo($_shipmentItem->getSku());
+            }
+            else
+            {
+                $id = $_shipmentItem->getProductId();
+                if(!is_null($productOption)) $id .= '_' . $productOption['option_id'] . '_' . $productOption['option_value'];
+                $ceShipmentLine->setMerchantProductNo($id);
+            }
+
             $ceShipmentLine->setQuantity($shippedQty);
             $ceShipmentLines[] = $ceShipmentLine;
         }
@@ -375,33 +391,63 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
      */
     public function creditCancellation(Varien_Event_Observer $observer)
     {
-        $creditmemo = $observer->getEvent()->getCreditmemo();
-        $order = $creditmemo->getOrder();
-        $order_id = $order->getId();
-        $storeId = $creditmemo->getStoreId();
-        $order_lines = $creditmemo->getAllItems();
+        $creditMemo = $observer->getEvent()->getCreditmemo();
+        $storeId = $creditMemo->getStoreId();
+        $order = $creditMemo->getOrder();
+        $orderId = $order->getId();
 
-        $ceOrder = Mage::getModel('channelengine/order')->loadByOrderId($order_id);
+        // Check if the API is connected for this store
+        $clients = $this->_client['cancellation'];
+        if(!isset($clients[$storeId])) return;
+
+        $client = $clients[$storeId];
+
+        $ceOrder = Mage::getModel('channelengine/order')->loadByOrderId($orderId);
         if (!$ceOrder || $ceOrder->getId() == null) return true;
 
-        // Check if the API client was initialized for this order
-        if (!isset($this->_client['cancellation'][$storeId])) return false;
+        $_creditItems = $creditMemo->getAllItems();
 
-        $lines = [];
 
-        foreach ($order_lines as $item) {
-            $lines[] = new MerchantCancellationLineRequest(['merchantProductNo' => $item->getSku(), 'quantity' => $item->getQty()]);
+        $ceCancellationLines = [];
+        foreach ($_creditItems as $_creditItem)
+        {
+            // Get the original order item
+            $_orderItem = Mage::getModel('sales/order_item')->load($_creditItem->getOrderItemId());
+            if ($_orderItem == null) continue;
+
+            // Only one option per product is supported by CE
+            $productOption = null;
+            $_productOptions = $_orderItem->getProductOptions();
+            if(isset($_productOptions['options']) && count($_productOptions['options']) > 0) $productOption = $_productOptions['options'][0];
+
+            $ceCancellationLine = new MerchantCancellationLineRequest();
+
+            if($this->_helper->useSkuInsteadOfId($storeId))
+            {
+                $ceCancellationLine->setMerchantProductNo($_creditItem->getSku());
+            }
+            else
+            {
+                $id = $_creditItem->getProductId();
+                if(!is_null($productOption)) $id .= '_' . $productOption['option_id'] . '_' . $productOption['option_value'];
+                $ceCancellationLine->setMerchantProductNo($id);
+            }
+
+            $ceCancellationLine->setQuantity($_creditItem->getQty());
+            $ceCancellationLines[] = $ceCancellationLine;
         }
 
-        $cancellationApi = $this->_client['cancellation'][$storeId];
-        $cancelationCreate = new MerchantCancellationRequest();
-        $cancelationCreate->setMerchantCancellationNo($order_id);
-        $cancelationCreate->setMerchantOrderNo($order_id);
-        $cancelationCreate->setLines($lines);
+        $cancellation = new MerchantCancellationRequest();
+        $cancellation->setMerchantCancellationNo($creditMemo->getId());
+        $cancellation->setMerchantOrderNo($orderId);
+        $cancellation->setLines($ceCancellationLines);
 
-        try {
-            $cancellationApi->cancellationCreate($cancelationCreate);
-        } catch (\Exception $e) {
+        try
+        {
+            $client->cancellationCreate($cancellation);
+        }
+        catch (\Exception $e)
+        {
             $this->logException($e);
 
         }

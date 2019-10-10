@@ -23,17 +23,6 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract
         Mage::app()->loadAreaPart(Mage_Core_Model_App_Area::AREA_FRONTEND, Mage_Core_Model_App_Area::PART_EVENTS);
     }
 
-
-    /**
-     * Exclude store from cronjob
-     * @param $store
-     * @return bool
-     */
-    private function enabledFeedGeneration($storeId)
-    {
-        return $this->config[$storeId]['general']['enable_feed_generation'] == 1;
-    }
-
     /**
      * Generate products feed for ChannelEngine
      */
@@ -52,7 +41,7 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract
         $storeId = $store->getId();
         $config = $this->config[$storeId];
 
-        if (!$this->enabledFeedGeneration($storeId)) return;
+        if (!$this->helper->isFeedGenerationEnabled($storeId)) return;
 
         $memoryUsage = memory_get_usage();
         $tenant = $config['general']['tenant'];
@@ -191,6 +180,10 @@ class Tritac_ChannelEngine_Helper_Feed extends Mage_Core_Helper_Abstract
 
         // Check whether this product has option variants
         if (isset($options[$productData['entity_id']])) {
+
+            // If SKU is used as the merchant product number, options products are not supported
+            if ($this->helper->useSkuInsteadOfId($storeId)) return;
+
             $productData['parent_id'] = $productData['entity_id'];
             $options = $options[$productData['entity_id']];
             $variantProducts = array();
