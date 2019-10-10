@@ -108,7 +108,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
         $from_date = date('Y-m-d', strtotime('-100 days')) . ' 00:00:00';
         $to_date = date('Y-m-d') . ' 23:59:59';
         foreach ($this->_client['orders'] as $storeId => $client) {
-            if (!$this->importFulfilmentOrders($storeId)) {
+            if (!$this->isMarketplaceFulfilledOrderImportEnabled($storeId)) {
                 continue;
             }
             $get_count_response = $response = $client->orderGetByFilter('SHIPPED', null, $from_date, $to_date, null, 'ONLY_CHANNEL');
@@ -221,7 +221,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
         $customer = new Tritac_ChannelEngine_Model_Customer();
         if (is_null($this->_client['orders'])) return false;
         foreach ($this->_client['orders'] as $storeId => $client) {
-            if (!$this->enableOrderImport($storeId)) {
+            if (!$this->isOrderImportEnabled($storeId)) {
                 continue;
             }
             $orderApi = $this->initOrderApi($client);

@@ -67,7 +67,7 @@ class Tritac_ChannelEngine_Model_BaseCe
      * @param $storeId
      * @return bool
      */
-    protected function importFulfilmentOrders($storeId)
+    protected function isMarketplaceFulfilledOrderImportEnabled($storeId)
     {
         $store = Mage::getModel('core/store')->load($storeId);
         return Mage::getStoreConfig('channelengine/optional/enable_fulfilment_import', $store) == 1;
@@ -78,7 +78,7 @@ class Tritac_ChannelEngine_Model_BaseCe
      * @param $storeId
      * @return bool
      */
-    protected function enableOrderImport($storeId)
+    protected function isOrderImportEnabled($storeId)
     {
 
         $store = Mage::getModel('core/store')->load($storeId);
