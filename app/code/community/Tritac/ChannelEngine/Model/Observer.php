@@ -98,6 +98,58 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
     }
 
     /**
+     * Fetches new merchant fulfilled orders from ChannelEngine.
+     * Ran by cron. The cronjob is set in extension config file.
+     * @return bool
+     */
+    public function fetchNewOrders()
+    {
+        if (is_null($this->_client)) return false;
+
+        foreach ($this->_client['orders'] as $storeId => $client) {
+
+            if (!$this->isOrderImportEnabled($storeId)) continue;
+
+            $this->fetchNewOrdersForStore($storeId, $client);
+        }
+
+        return true;
+    }
+
+    private function fetchNewOrdersForStore($storeId, $client)
+    {
+        $orders = [];
+
+        try
+        {
+            $response = $client->orderGetNew();
+            $orders = $response->getContent();
+        }
+        catch(Exception $e)
+        {
+            $this->logException($e);
+            return;
+        }
+
+        foreach ($orders as $order)
+        {
+            try
+            {
+                $magentoOrder = $this->createMagentoOrderForStore($storeId, $order, false);
+                $acknowledgement = new OrderAcknowledgement();
+                $acknowledgement->setMerchantOrderNo($magentoOrder->getId());
+                $acknowledgement->setOrderId($order->getId());
+                $response = $client->orderAcknowledge($acknowledgement);
+            }
+            catch(Exception $e)
+            {
+                $this->logException($e);
+                return;
+            }
+        }
+    }
+
+    /**
      * Fetches the marketplace fulfilled orders (LVB, FBA, FBC, etc.)
      * Ran by cron. The cronjob is set in extension config file.
      * @return bool
@@ -155,99 +207,6 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
             }
         }
 
-    }
-
-    /**
-     * Creates a ChannelEngine cancellation for a credited order
-     * Triggered by events. The event is set in extension config file.
-     * @param Varien_Event_Observer $observer
-     */
-    public function creditCancellation(Varien_Event_Observer $observer)
-    {
-        $creditmemo = $observer->getEvent()->getCreditmemo();
-        $order = $creditmemo->getOrder();
-        $order_id = $order->getId();
-        $storeId = $creditmemo->getStoreId();
-        $order_lines = $creditmemo->getAllItems();
-
-        $ceOrder = Mage::getModel('channelengine/order')->loadByOrderId($order_id);
-        if (!$ceOrder || $ceOrder->getId() == null) return true;
-
-        // Check if the API client was initialized for this order
-        if (!isset($this->_client['cancellation'][$storeId])) return false;
-
-        $lines = [];
-
-        foreach ($order_lines as $item) {
-            $lines[] = new MerchantCancellationLineRequest(['merchantProductNo' => $item->getSku(), 'quantity' => $item->getQty()]);
-        }
-
-        $cancellationApi = $this->_client['cancellation'][$storeId];
-        $cancelationCreate = new MerchantCancellationRequest();
-        $cancelationCreate->setMerchantCancellationNo($order_id);
-        $cancelationCreate->setMerchantOrderNo($order_id);
-        $cancelationCreate->setLines($lines);
-
-        try {
-            $cancellationApi->cancellationCreate($cancelationCreate);
-        } catch (\Exception $e) {
-            $this->logException($e);
-
-        }
-
-    }
-
-
-    /**
-     * Fetches new merchant fulfilled orders from ChannelEngine.
-     * Ran by cron. The cronjob is set in extension config file.
-     * @return bool
-     */
-    public function fetchNewOrders()
-    {
-        if (is_null($this->_client)) return false;
-
-        foreach ($this->_client['orders'] as $storeId => $client) {
-
-            if (!$this->isOrderImportEnabled($storeId)) continue;
-
-            $this->fetchNewOrdersForStore($storeId, $client);
-        }
-
-        return true;
-    }
-
-    private function fetchNewOrdersForStore($storeId, $client)
-    {
-        $orders = [];
-
-        try
-        {
-            $response = $client->orderGetNew();
-            $orders = $response->getContent();
-        }
-        catch(Exception $e)
-        {
-            $this->logException($e);
-            return;
-        }
-
-        foreach ($orders as $order)
-        {
-            try
-            {
-                $magentoOrder = $this->createMagentoOrderForStore($storeId, $order, false);
-                $acknowledgement = new OrderAcknowledgement();
-                $acknowledgement->setMerchantOrderNo($magentoOrder->getId());
-                $acknowledgement->setOrderId($order->getId());
-                $response = $client->orderAcknowledge($acknowledgement);
-            }
-            catch(Exception $e)
-            {
-                $this->logException($e);
-                return;
-            }
-        }
     }
 
     private function createMagentoOrderForStore($storeId, $order, $isFulfillmentByMarketplace)
@@ -406,6 +365,46 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
         }
 
         return true;
+    }
+
+    /**
+     * Creates a ChannelEngine cancellation for a credited order
+     * Triggered by events. The event is set in extension config file.
+     * @param Varien_Event_Observer $observer
+     */
+    public function creditCancellation(Varien_Event_Observer $observer)
+    {
+        $creditmemo = $observer->getEvent()->getCreditmemo();
+        $order = $creditmemo->getOrder();
+        $order_id = $order->getId();
+        $storeId = $creditmemo->getStoreId();
+        $order_lines = $creditmemo->getAllItems();
+
+        $ceOrder = Mage::getModel('channelengine/order')->loadByOrderId($order_id);
+        if (!$ceOrder || $ceOrder->getId() == null) return true;
+
+        // Check if the API client was initialized for this order
+        if (!isset($this->_client['cancellation'][$storeId])) return false;
+
+        $lines = [];
+
+        foreach ($order_lines as $item) {
+            $lines[] = new MerchantCancellationLineRequest(['merchantProductNo' => $item->getSku(), 'quantity' => $item->getQty()]);
+        }
+
+        $cancellationApi = $this->_client['cancellation'][$storeId];
+        $cancelationCreate = new MerchantCancellationRequest();
+        $cancelationCreate->setMerchantCancellationNo($order_id);
+        $cancelationCreate->setMerchantOrderNo($order_id);
+        $cancelationCreate->setLines($lines);
+
+        try {
+            $cancellationApi->cancellationCreate($cancelationCreate);
+        } catch (\Exception $e) {
+            $this->logException($e);
+
+        }
+
     }
 
     /**
