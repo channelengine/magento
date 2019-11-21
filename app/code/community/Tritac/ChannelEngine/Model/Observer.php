@@ -137,7 +137,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
             try
             {
                 $magentoOrder = $this->createMagentoOrderForStore($storeId, $order, false);
-                if(is_null($magentoOrder)) return;
+                if(is_null($magentoOrder)) continue;
 
                 $acknowledgement = new MerchantOrderAcknowledgementRequest();
                 $acknowledgement->setMerchantOrderNo($magentoOrder->getId());
