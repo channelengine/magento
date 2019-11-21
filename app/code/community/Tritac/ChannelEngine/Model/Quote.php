@@ -47,7 +47,9 @@ class Tritac_ChannelEngine_Model_Quote extends Tritac_ChannelEngine_Model_BaseCe
             $params->setQty($item->getQuantity());
             $params->setOptions($productOptions);
 
-            return $this->addProductToQuote($_product, $quote, $params, $item, $order, $mpn);
+            $result = $this->addProductToQuote($_product, $quote, $params, $item, $order, $mpn);
+
+            if(!$result) return false;
         }
         return true;
 
