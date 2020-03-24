@@ -32,7 +32,7 @@ class Tritac_ChannelEngine_Model_Quote extends Tritac_ChannelEngine_Model_BaseCe
             else
             {
                 $parsedMpn = $product->parseMerchantProductNo($mpn);
-                $productId = $parsedMpn['id'];
+                $productId = $parsedMpn['product_id'];
                 if (isset($parsedMpn['option_id'])) $productOptions = array($parsedMpn['option_id'] => intval($parsedMpn['option_value_id']));
             }
 
