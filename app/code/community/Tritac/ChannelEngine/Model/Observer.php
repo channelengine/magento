@@ -78,8 +78,7 @@ class Tritac_ChannelEngine_Model_Observer extends Tritac_ChannelEngine_Model_Bas
             if ($this->_helper->isConnected($storeId)) {
                 $apiConfig = new Configuration();
                 $apiConfig->setApiKey('apikey', $storeConfig['general']['api_key']);
-                $apiConfig->setHost('http://' . $storeConfig['general']['tenant'] . '.channelengine.local/api');
-                //$apiConfig->setHost('https://' . $storeConfig['general']['tenant'] . '.channelengine.net/api');
+                $apiConfig->setHost('https://' . $storeConfig['general']['tenant'] . '.channelengine.net/api');
                 $this->_client['orders'][$storeId] = new OrderApi(null, $apiConfig);
                 $this->_client['returns'][$storeId] = new ReturnApi(null, $apiConfig);
                 $this->_client['shipment'][$storeId] = new ShipmentApi(null, $apiConfig);
